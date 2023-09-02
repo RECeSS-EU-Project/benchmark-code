@@ -176,10 +176,37 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	call((("rm -f %s/intermediary_seed=*_" % results_folder)+results_fname), shell=True)
 	return res_df
 
-def plot_boxplots(results):
-	## title labels etc.
-	results.loc[[i for i in results.index if (" time (sec)" not in i)]].T.boxplot()
-	plt.show()
+def plot_boxplots(results_di, metrics=None):
+	if (metrics is None or len(results_di)==1):
+		for model_name in results_di:
+			ids = [i for i in results_di[model_name].index if ((" time (sec)" not in i) and ("HR@" not in i) and (i not in ["ACC", "Fscore"]))]
+			results = results_di[model_name].loc[ids]
+			print(results)
+			sns.boxplot(data=results.T)
+			plt.xlabel("Metrics (%s)" % model_name)
+			plt.ylabel("Score")
+			plt.xticks(rotation=45)
+			plt.savefig("boxplot_%s.png" % model_name, bbox_inches="tight")
+			plt.close()
+	else:
+		results_lst = []
+		for metric in metrics:
+			results = pd.concat(tuple([pd.DataFrame(results_di[i].loc[metric].values, columns=[metric], index=["%s (%d)" % (i,j) for j in range(results_di[i].shape[1])]) for i in results_di]), axis=0)
+			print(results)
+			results["model"] = [ii for i in results_di for ii in [i]*results_di[i].shape[1]]
+			results["metric"] = [metric]*results.shape[0]
+			print(results)
+			results_lst.append(results.T)
+		results = pd.concat(tuple(results_lst), axis=0).T
+		print(results)
+		sns.boxplot(data=results.T, x=metrics[0], y="model", hue="deck")
+		plt.xlabel(metric)
+		plt.ylabel("Score")
+		plt.xticks(rotation=45)
+		plt.savefig("boxplot_%s.png" % metric, bbox_inches="tight")
+		plt.close()
+
+## https://seaborn.pydata.org/generated/seaborn.boxplot.html TODO
 
 if __name__=="__main__":
 
@@ -193,7 +220,7 @@ if __name__=="__main__":
 		"N" : 10, # nb iterations
 		"K" : 5, # nb folds
 		"ptest" : 0.2, # size of testing set
-		"njobs" : 1, # parallelism
+		"njobs" : 1, # parallelism ## TODO
 		"verbose" : True,
 		"results_folder" : "results/",
 		"datasets_folder" : "datasets/",
@@ -202,7 +229,8 @@ if __name__=="__main__":
 		f.write(json.dumps(params_all))
 
 	results = run_pipeline(**params_all)
-	print(results)
-	plot_boxplots(results)
+	plot_boxplots({params_all["model_name"]: results}, metrics=None)
+	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC"])
+	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC","Lin's AUC"])
 	#Popen("rm -f *.csv *.json".split(" "), shell=True)
 	#call("rm -f *.csv *.json", shell=True)
