@@ -2,10 +2,11 @@
 
 ## FINETUNING PARAMETERS: TODO
 
-from benchmark_pipeline import run_pipeline
+from benchmark_pipeline import run_pipeline, plot_boxplots
 import json
 import argparse
 from multiprocessing import cpu_count
+from subprocess import Popen
 
 parser = argparse.ArgumentParser(description='Large-scale benchmark of collaborative filtering applications to drug repurposing')
 
@@ -33,25 +34,25 @@ for model in models:
 	for dataset in datasets:
 		for splitting in ["random_simple", "weakly_correlated"]:
 
-		params_all = {
-			"model_name" : model,
-			"dataset_name" : dataset,
-			"splitting" : splitting,
-			"params" : None,
-			"metric" : args.metric,
-			"batch_ratio" : args.batch_ratio,
-			"N" : args.N, 
-			"K" : args.K, 
-			"ptest" : args.test_size, 
-			"njobs" : args.njobs, 
-			"verbose" : args.verbose,
-			"results_folder" : "results_%s/" % model,
-			"datasets_folder" : "datasets/",
-		}
-		proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
-		proc.wait()
-		with open(params_all["results_folder"]+"/params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
-			f.write(json.dumps(params_all))
+			params_all = {
+				"model_name" : model,
+				"dataset_name" : dataset,
+				"splitting" : splitting,
+				"params" : None,
+				"metric" : args.metric,
+				"batch_ratio" : args.batch_ratio,
+				"N" : args.N, 
+				"K" : args.K, 
+				"ptest" : args.test_size, 
+				"njobs" : args.njobs, 
+				"verbose" : args.verbose,
+				"results_folder" : "results_%s/" % model,
+				"datasets_folder" : "datasets/",
+			}
+			proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
+			proc.wait()
+			with open(params_all["results_folder"]+"/params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
+				f.write(json.dumps(params_all))
 
-		results = run_pipeline(**params_all)
-		plot_boxplots({model: results}, metrics=None)
+			results = run_pipeline(**params_all)
+			plot_boxplots({model: results}, params_all["splitting"], params_all["dataset_name"], metrics=None, results_folder=params_all["results_folder"])

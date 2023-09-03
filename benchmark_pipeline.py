@@ -184,7 +184,7 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	call((("rm -f %s/intermediary_seed=*_" % results_folder)+results_fname), shell=True)
 	return res_df
 
-def plot_boxplots(results_di, metrics=None, results_folder="./"):
+def plot_boxplots(results_di, splitting, dataset_name, metrics=None, results_folder="./"):
 	if (metrics is None or len(results_di)==1):
 		for model_name in results_di:
 			ids = [i for i in results_di[model_name].index if ((" time (sec)" not in i) and ("HR@" not in i) and (i not in ["ACC", "Fscore"]))]
@@ -193,7 +193,7 @@ def plot_boxplots(results_di, metrics=None, results_folder="./"):
 			plt.xlabel("Metrics (%s)" % model_name)
 			plt.ylabel("Score")
 			plt.xticks(rotation=45)
-			plt.savefig("%s/boxplot_%s.png" % (results_folder,model_name), bbox_inches="tight")
+			plt.savefig("%s/boxplot_%s_%s_%s.png" % (results_folder,model_name,splitting,dataset_name), bbox_inches="tight")
 			plt.close()
 	else:
 		results_lst = []
@@ -208,7 +208,7 @@ def plot_boxplots(results_di, metrics=None, results_folder="./"):
 		plt.xlabel("Score")
 		plt.ylabel("Metric")
 		plt.xticks(rotation=45)
-		plt.savefig("%s/boxplot_%s.png" % (results_folder,metric), bbox_inches="tight")
+		plt.savefig("%s/boxplot_%s_%s_%s.png" % (results_folder,model_name,splitting,dataset_name), bbox_inches="tight")
 		plt.close()
 
 if __name__=="__main__":
@@ -238,8 +238,8 @@ if __name__=="__main__":
 
 	results = run_pipeline(**params_all)
 	print(results)
-	plot_boxplots({params_all["model_name"]: results}, metrics=None, results_folder=params_all["results_folder"])
-	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC"], results_folder=params_all["results_folder"])
-	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC","Lin's AUC"], results_folder=params_all["results_folder"])
+	plot_boxplots({params_all["model_name"]: results}, params_all["splitting"], params_all["dataset_name"], metrics=None,  results_folder=params_all["results_folder"])
+	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, params_all["splitting"], params_all["dataset_name"], metrics=["AUC"], results_folder=params_all["results_folder"])
+	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, params_all["splitting"], params_all["dataset_name"], metrics=["AUC","Lin's AUC"], results_folder=params_all["results_folder"])
 	#Popen(("rm -rf %s" % params_all["results_folder"]).split(" "), shell=True)
 	call("rm -rf %s" % params_all["results_folder"], shell=True)
