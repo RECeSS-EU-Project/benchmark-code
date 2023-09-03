@@ -1,5 +1,9 @@
 #coding:utf-8
 
+## TIMEOUT: https://stackoverflow.com/questions/492519/timeout-on-a-function-call
+## MEMORYERROR: https://stackoverflow.com/questions/9850995/tracking-maximum-memory-usage-by-a-python-function
+## EXCEPTIONHANDLING: TODO
+
 import benchscofi
 from benchscofi.utils import rowwise_metrics, prior_estimation
 import stanscofi
@@ -27,10 +31,11 @@ models = [ ## 18
 	"VariationalWrapper", "DRRS", "SCPMF", "BNNR", "LRSSL", "MBiRW", "LibMFWrapper", 
 	"LogisticMF", "PSGCN", "DDA_SKF", "HAN"
 ]
-datasets = ["Synthetic", "CaseControl", "Censoring", "TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL"] ## 9
+datasets = ["Synthetic", #"CaseControl", "Censoring", 
+"TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL"] ## 9
 splitting_methods = ["weakly_correlated", "random_simple"]
 
-def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, random_seed, metric="AUC", K=5, ptest=0.2, verbose=False, intermediary_results_folder="./"):
+def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, random_seed=1234, metric="AUC", K=5, ptest=0.2, verbose=False, intermediary_results_folder="./"):
 	Popen(("mkdir -p "+intermediary_results_folder).split(" "))
 	np.random.seed(random_seed)
 	random.seed(random_seed)
@@ -48,6 +53,7 @@ def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, r
         ##           II. TRAINING/TESTING model CV ON traintest dataset ##
 	##--------------------------------------------------------------##
 	dataset_traintest = dataset.subset(traintest_folds)
+	import benchscofi
 	__import__("benchscofi."+model_name)
 	model = eval("benchscofi."+model_name+"."+model_name)
 	start_time = time()
@@ -139,12 +145,12 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	if (dataset_name=="Synthetic"):
 		data_args = stanscofi.datasets.generate_dummy_dataset(npositive, nnegative, nfeatures, mean, std, random_state=dataset_seed)
 		data_args.setdefault("name", "Synthetic")
-	elif (dataset_name=="CaseControl"):
-		data_args = benchscofi.utils.prior_estimation.generate_CaseControl_dataset(N=npositive+nnegative,nfeatures=nfeatures,pi=pi,sparsity=sparsity,imbalance=imbalance,mean=mean,std=std,exact=True,random_state=dataset_seed)
-		data_args.setdefault("name", "CaseControl")
-	elif (dataset_name=="Censoring"):
-		data_args = benchscofi.prior_estimation.generate_Censoring_dataset(pi=pi,c=c,N=npositive+nnegative,nfeatures=nfeatures,mean=mean,std=std,exact=True,random_state=dataset_seed)
-		data_args.setdefault("name", "Censoring")
+	#elif (dataset_name=="CaseControl"):
+	#	data_args, _ = prior_estimation.generate_CaseControl_dataset(N=npositive+nnegative,nfeatures=nfeatures,pi=pi,sparsity=sparsity,imbalance=imbalance,mean=mean,std=std,exact=True,random_state=dataset_seed)
+	#	data_args.setdefault("name", "CaseControl")
+	#elif (dataset_name=="Censoring"):
+	#	data_args, _ = prior_estimation.generate_Censoring_dataset(pi=pi,c=c,N=npositive+nnegative,nfeatures=nfeatures,mean=mean,std=std,exact=True,random_state=dataset_seed)
+	#	data_args.setdefault("name", "Censoring")
 	else:
 		Popen(("mkdir -p "+datasets_folder).split(" "))
 		data_args = stanscofi.utils.load_dataset(dataset_name, datasets_folder)
@@ -165,10 +171,12 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	if ((njobs==1) or (N==1)):
 		results = []
 		for iss, seed in enumerate(seeds):
-			df_results = aux_run_pipeline(iss, model_name, params, data_args, red_folds, splitting, seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder)
+			df_results = aux_run_pipeline(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder)
 			results.append(df_results)
 	else:
-		results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, splitting, seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in enumerate(seeds))
+		if (verbose):
+			print("%d jobs in parallel" % njobs)
+		results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in enumerate(seeds))
 	res_df = pd.concat(tuple(results), axis=1)
 	res_df.to_csv((results_folder+("results_N=%d" % N))+results_fname)
 	pd.DataFrame([seeds], index=["seed"], columns=range(N)).to_csv((results_folder+("seeds_N=%d" % N))+results_fname)
@@ -176,40 +184,37 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	call((("rm -f %s/intermediary_seed=*_" % results_folder)+results_fname), shell=True)
 	return res_df
 
-def plot_boxplots(results_di, metrics=None):
+def plot_boxplots(results_di, metrics=None, results_folder="./"):
 	if (metrics is None or len(results_di)==1):
 		for model_name in results_di:
 			ids = [i for i in results_di[model_name].index if ((" time (sec)" not in i) and ("HR@" not in i) and (i not in ["ACC", "Fscore"]))]
 			results = results_di[model_name].loc[ids]
-			print(results)
 			sns.boxplot(data=results.T)
 			plt.xlabel("Metrics (%s)" % model_name)
 			plt.ylabel("Score")
 			plt.xticks(rotation=45)
-			plt.savefig("boxplot_%s.png" % model_name, bbox_inches="tight")
+			plt.savefig("%s/boxplot_%s.png" % (results_folder,model_name), bbox_inches="tight")
 			plt.close()
 	else:
 		results_lst = []
 		for metric in metrics:
-			results = pd.concat(tuple([pd.DataFrame(results_di[i].loc[metric].values, columns=[metric], index=["%s (%d)" % (i,j) for j in range(results_di[i].shape[1])]) for i in results_di]), axis=0)
-			print(results)
+			results = pd.concat(tuple([pd.DataFrame(results_di[i].loc[metric].values, columns=["value"], index=["%s (%d)" % (i,j) for j in range(results_di[i].shape[1])]) for i in results_di]), axis=0)
 			results["model"] = [ii for i in results_di for ii in [i]*results_di[i].shape[1]]
 			results["metric"] = [metric]*results.shape[0]
-			print(results)
 			results_lst.append(results.T)
-		results = pd.concat(tuple(results_lst), axis=0).T
-		print(results)
-		sns.boxplot(data=results.T, x=metrics[0], y="model", hue="deck")
-		plt.xlabel(metric)
-		plt.ylabel("Score")
+		results = pd.concat(tuple(results_lst), axis=1).T
+		results["value"] = results["value"].astype(float)
+		sns.boxplot(data=results, x="value", y="metric", hue="model")
+		plt.xlabel("Score")
+		plt.ylabel("Metric")
 		plt.xticks(rotation=45)
-		plt.savefig("boxplot_%s.png" % metric, bbox_inches="tight")
+		plt.savefig("%s/boxplot_%s.png" % (results_folder,metric), bbox_inches="tight")
 		plt.close()
 
-## https://seaborn.pydata.org/generated/seaborn.boxplot.html TODO
-
 if __name__=="__main__":
+	from multiprocessing import cpu_count
 
+	N = 3
 	params_all = {
 		"model_name" : "PMF",
 		"dataset_name" : "Synthetic",
@@ -217,20 +222,24 @@ if __name__=="__main__":
 		"params" : None,
 		"metric" : "AUC",
 		"batch_ratio" : 1.,
-		"N" : 10, # nb iterations
+		"N" : N, # nb iterations
 		"K" : 5, # nb folds
 		"ptest" : 0.2, # size of testing set
-		"njobs" : 1, # parallelism ## TODO
+		"njobs" : max(1,min(N,cpu_count()-2)), # parallelism
 		"verbose" : True,
-		"results_folder" : "results/",
+		"results_folder" : "results_test/",
 		"datasets_folder" : "datasets/",
 	}
-	with open(params_all["results_folder"]+"params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
+
+	proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
+	proc.wait()
+	with open(params_all["results_folder"]+"/params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
 		f.write(json.dumps(params_all))
 
 	results = run_pipeline(**params_all)
-	plot_boxplots({params_all["model_name"]: results}, metrics=None)
-	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC"])
-	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC","Lin's AUC"])
-	#Popen("rm -f *.csv *.json".split(" "), shell=True)
-	#call("rm -f *.csv *.json", shell=True)
+	print(results)
+	plot_boxplots({params_all["model_name"]: results}, metrics=None, results_folder=params_all["results_folder"])
+	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC"], results_folder=params_all["results_folder"])
+	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, metrics=["AUC","Lin's AUC"], results_folder=params_all["results_folder"])
+	#Popen(("rm -rf %s" % params_all["results_folder"]).split(" "), shell=True)
+	call("rm -rf %s" % params_all["results_folder"], shell=True)

@@ -1,5 +1,7 @@
 #coding:utf-8
 
+## FINETUNING PARAMETERS: TODO
+
 from benchmark_pipeline import run_pipeline
 import json
 import argparse
@@ -27,8 +29,6 @@ assert args.njobs>0 and args.njobs<cpu_count()
 assert args.test_size>0 and args.test_size<1
 assert args.batch_ratio>0 and args.batch_ratio<=1
 
-## finetune params TODO
-
 for model in models:
 	for dataset in datasets:
 		for splitting in ["random_simple", "weakly_correlated"]:
@@ -48,7 +48,9 @@ for model in models:
 			"results_folder" : "results_%s/" % model,
 			"datasets_folder" : "datasets/",
 		}
-		with open(params_all["results_folder"]+"params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
+		proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
+		proc.wait()
+		with open(params_all["results_folder"]+"/params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
 			f.write(json.dumps(params_all))
 
 		results = run_pipeline(**params_all)
