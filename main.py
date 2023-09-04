@@ -18,6 +18,7 @@ parser.add_argument('--N', type=int, help="Number of iterations", default=100)
 parser.add_argument('--K', type=int, help="Number of folds", default=5)
 parser.add_argument('--test_size', type=float, help="Test size (in number of known ratings)", default=0.2)
 parser.add_argument('--metric', type=str, help="Metric to optimize during crossvalidation", default="AUC")
+parser.add_argument('--splitting', type=str, help="Type of data splitting into training/testing and validation sets", default="random_simple,weakly_correlated", choices=["random_simple", "weakly_correlated", "random_simple,weakly_correlated", "weakly_correlated,random_simple"])
 
 parser.add_argument('--batch_ratio', type=float, help="Percentage of dataset to consider", default=1.)
 parser.add_argument('--verbose', type=bool, help="Verbose", default=False)
@@ -25,6 +26,7 @@ args = parser.parse_args()
 
 models = args.models.split(",")
 datasets = args.datasets.split(",")
+splitting = args.splitting.split(",")
 
 assert args.njobs>0 and args.njobs<cpu_count()
 assert args.test_size>0 and args.test_size<1
@@ -32,12 +34,12 @@ assert args.batch_ratio>0 and args.batch_ratio<=1
 
 for model in models:
 	for dataset in datasets:
-		for splitting in ["random_simple", "weakly_correlated"]:
+		for split_ in splitting:
 
 			params_all = {
 				"model_name" : model,
 				"dataset_name" : dataset,
-				"splitting" : splitting,
+				"splitting" : split_,
 				"params" : None,
 				"metric" : args.metric,
 				"batch_ratio" : args.batch_ratio,

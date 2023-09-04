@@ -9,3 +9,11 @@ python3 -m benchmark_pipeline
 python3 -m main --models "PMF" --datasets "Synthetic" \ 
 	--N 3 --K 5 --njobs 3 
 ```
+
+Benchmark
+
+```bash
+ALG="PMF,ALSWR,FastaiCollabWrapper,NIMCGCN,DRRS,SCPMF,BNNR,MBiRW,LogisticMF,DDA_SKF,HAN"
+python3 -m main --models "$ALG" --datasets Gottlieb \ 
+	--njobs 10 --N 100 --splitting random_simple
+```
