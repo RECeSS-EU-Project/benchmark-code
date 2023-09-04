@@ -20,6 +20,7 @@ parser.add_argument('--test_size', type=float, help="Test size (in number of kno
 parser.add_argument('--metric', type=str, help="Metric to optimize during crossvalidation", default="AUC")
 parser.add_argument('--splitting', type=str, help="Type of data splitting into training/testing and validation sets", default="random_simple,weakly_correlated", choices=["random_simple", "weakly_correlated", "random_simple,weakly_correlated", "weakly_correlated,random_simple"])
 
+parser.add_argument('--save_folder', type=str, help="Where to save all result files", default="./")
 parser.add_argument('--batch_ratio', type=float, help="Percentage of dataset to consider", default=1.)
 parser.add_argument('--verbose', type=bool, help="Verbose", default=False)
 args = parser.parse_args()
@@ -48,7 +49,7 @@ for model in models:
 				"ptest" : args.test_size, 
 				"njobs" : args.njobs, 
 				"verbose" : args.verbose,
-				"results_folder" : "results_%s/" % model,
+				"results_folder" : args.save_folder+"/results_%s/" % model,
 				"datasets_folder" : "datasets/",
 			}
 			proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
