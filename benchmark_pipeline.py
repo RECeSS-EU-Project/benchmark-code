@@ -42,6 +42,8 @@ def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, r
 	dataset = stanscofi.datasets.Dataset(**data_args)
 	intermediary_results_fname = "%s/intermediary_seed=%d_%s_%s_%s_%s_%d_%f.csv" % (intermediary_results_folder, random_seed, model_name, dataset.name, splitting, metric, K, ptest)
 	if (os.path.exists(intermediary_results_fname)):
+		if (verbose):
+			print("File %s exists; returning it" % intermediary_results_fname)
 		return pd.read_csv(intermediary_results_fname, index_col=0)
 	if (red_folds is not None):
 		dataset = dataset.subset(red_folds)
@@ -136,6 +138,8 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	#print(seeds)
 	if (os.path.exists(results_folder+("results_N=%d" % N)+results_fname) and os.path.exists(results_folder+("seeds_N=%d" % N)+results_fname)):
 		#print(pd.read_csv(("seeds_N=%d" % N)+results_fname, index_col=0))
+		if (verbose):
+			print("File %s exists; returning it" % (results_folder+("results_N=%d" % N)+results_fname))
 		return pd.read_csv(results_folder+("results_N=%d" % N)+results_fname, index_col=0)
         ##################################################################
         ##            IMPORT/CREATE DATASET                             ##
