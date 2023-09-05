@@ -29,7 +29,7 @@ datasets_folder="datasets/"
 models = [ ## 18
 	"Constant", "PMF", "PulearnWrapper", "FastaiCollabWrapper", "NIMCGCN", "FFMWrapper", 
 	"VariationalWrapper", "DRRS", "SCPMF", "BNNR", "LRSSL", "MBiRW", "LibMFWrapper", 
-	"LogisticMF", "PSGCN", "DDA_SKF", "HAN", "ALSWR"
+	"LogisticMF", "PSGCN", "DDA_SKF", "HAN", "ALSWR", "LibMF", "SimpleBinaryClassifier"
 ]
 datasets = ["Synthetic", #"CaseControl", "Censoring", 
 "TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL"] ## 9
