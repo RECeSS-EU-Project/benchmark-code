@@ -18,7 +18,7 @@ import random
 from multiprocessing import cpu_count
 from subprocess import Popen, call
 import gc
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_backend
 import os
 import pandas as pd
 from time import time
@@ -176,7 +176,8 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	else:
 		if (verbose):
 			print("%d jobs in parallel" % njobs)
-		results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in enumerate(seeds))
+		with parallel_backend('loky', inner_max_num_threads=njobs):
+			results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in enumerate(seeds))
 	res_df = pd.concat(tuple(results), axis=1)
 	res_df.to_csv((results_folder+("results_N=%d" % N))+results_fname)
 	pd.DataFrame([seeds], index=["seed"], columns=range(N)).to_csv((results_folder+("seeds_N=%d" % N))+results_fname)
