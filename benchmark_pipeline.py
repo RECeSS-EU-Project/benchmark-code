@@ -213,7 +213,7 @@ def plot_boxplots(results_di, splitting, dataset_name, metrics=None, results_fol
 		plt.xlabel("Score")
 		plt.ylabel("Metric")
 		plt.xticks(rotation=45)
-		plt.savefig("%s/boxplot_%s_%s_%s.png" % (results_folder,model_name,splitting,dataset_name), bbox_inches="tight")
+		plt.savefig("%s/boxplot_%s_%s.png" % (results_folder,splitting,dataset_name), bbox_inches="tight")
 		plt.close()
 
 if __name__=="__main__":
