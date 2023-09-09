@@ -31,7 +31,7 @@ models = [ ## 18
 	"VariationalWrapper", "DRRS", "SCPMF", "BNNR", "LRSSL", "MBiRW", "LibMFWrapper", 
 	"LogisticMF", "PSGCN", "DDA_SKF", "HAN", "ALSWR", "LibMF", "SimpleBinaryClassifier"
 ]
-datasets = ["Synthetic", #"CaseControl", "Censoring", 
+datasets = ["Synthetic", "DNdataset", "PREDICT-Gottlieb", #"CaseControl", "Censoring", 
 "TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL"] ## 9
 splitting_methods = ["weakly_correlated", "random_simple"]
 
@@ -203,13 +203,13 @@ def plot_boxplots(results_di, splitting, dataset_name, metrics=None, results_fol
 	else:
 		results_lst = []
 		for metric in metrics:
-			results = pd.concat(tuple([pd.DataFrame(results_di[i].loc[metric].values, columns=["value"], index=["%s (%d)" % (i,j) for j in range(results_di[i].shape[1])]) for i in results_di]), axis=0)
-			results["model"] = [ii for i in results_di for ii in [i]*results_di[i].shape[1]]
-			results["metric"] = [metric]*results.shape[0]
+			results = pd.concat(tuple([pd.DataFrame(results_di[i].loc[metric].values, columns=["Value"], index=["%s (%d)" % (i,j) for j in range(results_di[i].shape[1])]) for i in results_di]), axis=0)
+			results["Model"] = [ii for i in results_di for ii in [i]*results_di[i].shape[1]]
+			results["Metric"] = [metric]*results.shape[0]
 			results_lst.append(results.T)
 		results = pd.concat(tuple(results_lst), axis=1).T
-		results["value"] = results["value"].astype(float)
-		sns.boxplot(data=results, x="value", y="metric", hue="model")
+		results["Value"] = results["Value"].astype(float)
+		sns.boxplot(data=results, x="Value", y="Metric", hue="Model")
 		plt.xlabel("Score")
 		plt.ylabel("Metric")
 		plt.xticks(rotation=45)
