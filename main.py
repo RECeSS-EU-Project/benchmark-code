@@ -29,7 +29,7 @@ models = args.models.split(",")
 datasets = args.datasets.split(",")
 splitting = args.splitting.split(",")
 
-assert args.njobs>0 and args.njobs<cpu_count()
+assert args.njobs>0 and args.njobs<=cpu_count()
 assert args.test_size>0 and args.test_size<1
 assert args.batch_ratio>0 and args.batch_ratio<=1
 
