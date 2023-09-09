@@ -13,7 +13,22 @@ python3 -m main --models "PMF" --datasets "Synthetic" \
 Benchmark
 
 ```bash
-ALG="PMF,ALSWR,FastaiCollabWrapper,NIMCGCN,DRRS,SCPMF,BNNR,MBiRW,LogisticMF,DDA_SKF,HAN"
-python3 -m main --models "$ALG" --datasets Gottlieb \ 
-	--njobs 10 --N 100 --splitting random_simple
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF,SimpleBinaryClassifier,VariationalWrapper"
+python3 -m main --models "$ALG" --datasets "Gottlieb" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_Gottlieb/"
+
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
+python3 -m main --models "$ALG" --datasets "Cdataset" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_Cdataset/"
+
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
+python3 -m main --models "$ALG" --datasets "TRANSCRIPT" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_TRANSCRIPT/"
+
+## after importing the full PREDICT dataset
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
+python3 -m main --models "$ALG" --datasets "PREDICT" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_PREDICT/"
+
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,PMF"
+python3 -m main --models "$ALG" --datasets "PREDICT" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_PREDICTpublic/"
+
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
+python3 -m main --models "$ALG" --datasets "LRSSL" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_LRSSL/"
 ```
