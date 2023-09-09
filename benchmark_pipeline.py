@@ -129,7 +129,7 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	assert K>=2
 	assert N>0
 	assert ptest<1 and ptest>0
-	assert njobs>0 and njobs<cpu_count()
+	assert njobs>0 and njobs<=cpu_count()
 	Popen(("mkdir -p "+results_folder).split(" "))
 	np.random.seed(dataset_seed)
 	random.seed(dataset_seed)
