@@ -31,7 +31,7 @@ models = [ ## 18
 	"VariationalWrapper", "DRRS", "SCPMF", "BNNR", "LRSSL", "MBiRW", "LibMFWrapper", 
 	"LogisticMF", "PSGCN", "DDA_SKF", "HAN", "ALSWR", "LibMF", "SimpleBinaryClassifier"
 ]
-datasets = ["Synthetic", "DNdataset", "PREDICT-Gottlieb", #"CaseControl", "Censoring", 
+datasets = ["Synthetic", "DNdataset", "PREDICT_Gottlieb", #"CaseControl", "Censoring", 
 "TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL"] ## 9
 splitting_methods = ["weakly_correlated", "random_simple"]
 

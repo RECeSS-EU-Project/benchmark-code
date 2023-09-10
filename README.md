@@ -13,7 +13,7 @@ python3 -m main --models "PMF" --datasets "Synthetic" \
 Benchmark
 
 ```bash
-ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF,SimpleBinaryClassifier,VariationalWrapper"
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF,SimpleBinaryClassifier,VariationalWrapper,DRRS"
 python3 -m main --models "$ALG" --datasets "Gottlieb" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_Gottlieb/"
 
 ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
@@ -26,7 +26,7 @@ python3 -m main --models "$ALG" --datasets "TRANSCRIPT" --njobs 15 --N 100 --K 5
 ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
 python3 -m main --models "$ALG" --datasets "PREDICT" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_PREDICT/"
 
-ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,PMF"
+ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
 python3 -m main --models "$ALG" --datasets "PREDICT" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_PREDICTpublic/"
 
 ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF"
