@@ -1,3 +1,9 @@
+# Benchmark code for paper "Large-scale benchmark of collaborative filtering applications to drug repurposing: enhancing the evaluation of model performance"
+
+## Install
+
+Please refer to the [README](https://github.com/recess-eu-project/benchscofi) to install cross-platform algorithms.
+
 ```bash
 conda create --name benchmark_code python=3.8 -y
 conda activate benchmark_code
@@ -10,7 +16,9 @@ python3 -m main --models "PMF" --datasets "Synthetic" \
 	--N 3 --K 5 --njobs 3 
 ```
 
-Benchmark
+## Benchmark
+
+Execute the following commands
 
 ```bash
 ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF,SimpleBinaryClassifier,VariationalWrapper,DRRS"
