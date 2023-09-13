@@ -1,4 +1,4 @@
-# Benchmark code for paper "Large-scale benchmark of collaborative filtering applications to drug repurposing: enhancing the evaluation of model performance"
+# Benchmark code for paper "Large-scale benchmark of collaborative filtering applications for drug repurposing: enhancing the evaluation of model performance"
 
 ## Install
 
