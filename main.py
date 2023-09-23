@@ -50,7 +50,7 @@ for model in models:
 				"njobs" : args.njobs, 
 				"verbose" : args.verbose,
 				"results_folder" : args.save_folder+"/results_%s/" % model,
-				"datasets_folder" : args.save_folder+"datasets/",
+				"datasets_folder" : args.save_folder+"/datasets/",
 			}
 			proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
 			proc.wait()

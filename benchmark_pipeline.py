@@ -36,7 +36,7 @@ datasets = ["Synthetic", "DNdataset", "PREDICT_Gottlieb", #"CaseControl", "Censo
 splitting_methods = ["weakly_correlated", "random_simple"]
 
 def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, random_seed=1234, metric="AUC", K=5, ptest=0.2, verbose=False, intermediary_results_folder="./"):
-	Popen(("mkdir -p "+intermediary_results_folder).split(" "))
+	Popen(("mkdir -p "+intermediary_results_folder+"/").split(" "))
 	np.random.seed(random_seed)
 	random.seed(random_seed)
 	dataset = stanscofi.datasets.Dataset(**data_args)
@@ -130,7 +130,7 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	assert N>0
 	assert ptest<1 and ptest>0
 	assert njobs>0 and njobs<=cpu_count()
-	Popen(("mkdir -p "+results_folder).split(" "))
+	Popen(("mkdir -p "+results_folder+"/").split(" "))
 	np.random.seed(dataset_seed)
 	random.seed(dataset_seed)
 	results_fname = "_%s_%s_%s_%s_%f_%d_%f.csv" % (model_name, dataset_name, splitting, metric, batch_ratio, K, ptest)
@@ -156,7 +156,7 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	#	data_args, _ = prior_estimation.generate_Censoring_dataset(pi=pi,c=c,N=npositive+nnegative,nfeatures=nfeatures,mean=mean,std=std,exact=True,random_state=dataset_seed)
 	#	data_args.setdefault("name", "Censoring")
 	else:
-		Popen(("mkdir -p "+datasets_folder).split(" "))
+		Popen(("mkdir -p "+datasets_folder+"/").split(" "))
 		data_args = stanscofi.utils.load_dataset(dataset_name, datasets_folder)
 	dataset = stanscofi.datasets.Dataset(**data_args)
         ##################################################################
@@ -183,8 +183,8 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 		with parallel_backend('loky', inner_max_num_threads=njobs):
 			results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in enumerate(seeds))
 	res_df = pd.concat(tuple(results), axis=1)
-	res_df.to_csv((results_folder+("results_N=%d" % N))+results_fname)
-	pd.DataFrame([seeds], index=["seed"], columns=range(N)).to_csv((results_folder+("seeds_N=%d" % N))+results_fname)
+	res_df.to_csv((results_folder+("/results_N=%d" % N))+results_fname)
+	pd.DataFrame([seeds], index=["seed"], columns=range(N)).to_csv((results_folder+("/seeds_N=%d" % N))+results_fname)
 	#Popen(("rm -f intermediary_seed=*_"+results_fname).split(" "), shell=True)
 	call((("rm -f %s/intermediary_seed=*_" % results_folder)+results_fname), shell=True)
 	return res_df
@@ -236,7 +236,7 @@ if __name__=="__main__":
 		"datasets_folder" : "datasets/",
 	}
 
-	proc = Popen(("mkdir -p "+params_all["results_folder"]).split(" "))
+	proc = Popen(("mkdir -p "+params_all["results_folder"]+"/").split(" "))
 	proc.wait()
 	with open(params_all["results_folder"]+"/params_"+"_".join([p+"="+str(v) for p, v in params_all.items() if (p not in ["params", "results_folder", "datasets_folder"])])+".json", "w") as f:
 		f.write(json.dumps(params_all))
