@@ -4,6 +4,9 @@ import pandas as pd
 from benchmark_pipeline import plot_boxplots
 from glob import glob
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
 
 run = [""]
 
@@ -56,7 +59,26 @@ for dataset_name in dataset_df.index:
 		results_di[ix].columns = [col+"_"+dataset_name for col in list(x.columns)]
 	dfs_metrics += results_di
 
-print(dfs_metrics[0].join(dfs_metrics[1:], how="outer"))
+df_metrics = dfs_metrics[0].join(dfs_metrics[1:], how="outer")
+df_metrics = df_metrics.loc[[i for i in df_metrics.index if (" time (sec)" not in i)]]
+
+cg = sns.clustermap(df_metrics.T.corr(method="spearman"), figsize=(5,5), cbar_kws=None, cmap="coolwarm", vmin=-1, vmax=1, cbar_pos=(1, .2, .03, .4))
+cg.ax_col_dendrogram.set_visible(False)
+plt.show()
+plt.close()
+
+r2_mat = np.eye(df_metrics.shape[0])
+for im1, m1 in enumerate(df_metrics.index):
+	for im2, m2 in enumerate(df_metrics.index[(im1+1):]):
+		r2_mat[im1,im1+1+im2] = r2_score(df_metrics.loc[m1].values, df_metrics.loc[m2].values)
+
+r2_mat += r2_mat.T
+np.diag(r2_mat, 1)
+df_r2 = pd.DataFrame(r2_mat, index=df_metrics.index, columns=df_metrics.index)
+cg = sns.clustermap(df_r2, figsize=(5,5), cbar_kws=None, cmap="coolwarm", vmin=-1, vmax=1, cbar_pos=(1, .2, .03, .4))
+cg.ax_col_dendrogram.set_visible(False)
+plt.show()
+plt.close()
 
 ################################
 ## Comparing metrics          ##
