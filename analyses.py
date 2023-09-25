@@ -40,12 +40,31 @@ dataset_df = pd.DataFrame(
 , columns=["Gottlieb","Cdataset","TRANSCRIPT","PREDICTpublic","LRSSL","Synthetic","PREDICTGottlieb"]
 , index=["type"]).T
 algorithm_df = pd.DataFrame(
-	[[0,0,1,0,0,1,0],
-	[0,0,0,1,1,1,1]]
+	[["No","No","Yes","No","No","Yes","No"],
+	["MF","NN","NN","MF","MF","NN","MF"]]
 , columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF"]
-, index=["use_features", "matrix-like"]).T
+, index=["features", "type"]).T
+
+metric_of_choice = "Lin's AUC"
 
 ## by metric
+dfs_metrics = []
+for dataset_name in dataset_df.index:
+	fnames = glob("results_%s/results_*/results_*.csv" % dataset_name)
+	results_di = [pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)]
+	for ix, x in enumerate(results_di):
+		results_di[ix].columns = [col+"_"+dataset_name for col in list(x.columns)]
+	dfs_metrics += results_di
+
+print(dfs_metrics[0].join(dfs_metrics[1:], how="outer"))
+
+################################
+## Comparing metrics          ##
+################################
+
+
+exit()
+
 dfs_metrics = {}
 for dataset_name in dataset_df.index:
 	fnames = glob("results_%s/results_*/results_*.csv" % dataset_name)
@@ -55,26 +74,6 @@ for dataset_name in dataset_df.index:
 	data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
 	data_df = pd.DataFrame(data_df)
 	dfs_metrics.setdefault(dataset_name, data_df)
-
-print(dfs_metrics)
-
-################################
-## Comparing metrics          ##
-################################
-
-
-exit()
-
-metric_of_choice = "Lin's AUC"
-dfs = {}
-for dataset_name in dataset_df.index:
-	fnames = glob("results_%s/results_*/results_*.csv" % dataset_name)
-	results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
-	for x in results_di:
-		results_di[x].columns = range(results_di[x].shape[1]) # N
-	data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
-	data_df = pd.DataFrame(data_df)
-	dfs.setdefault(dataset_name, data_df)
 
 print(dfs)
 
