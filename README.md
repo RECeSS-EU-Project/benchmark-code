@@ -21,6 +21,8 @@ python3 -m main --models "PMF" --datasets "Synthetic" \
 Execute the following commands
 
 ```bash
+SAVE_FOLDER="../benchmark-results/" ## or wherever you want
+
 ALG="ALSWR,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF,SimpleBinaryClassifier,VariationalWrapper,DRRS"
 python3 -m main --models "$ALG" --datasets "Gottlieb" --njobs 15 --N 100 --K 5 --splitting "random_simple" --save_folder "$SAVE_FOLDER/results_Gottlieb/"
 
