@@ -50,39 +50,62 @@ algorithm_df = pd.DataFrame(
 
 metric_of_choice = "Lin's AUC"
 
-## by metric
-dfs_metrics = []
-for dataset_name in dataset_df.index:
-	fnames = glob("results_%s/results_*/results_*.csv" % dataset_name)
-	results_di = [pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)]
-	for ix, x in enumerate(results_di):
-		results_di[ix].columns = [col+"_"+dataset_name for col in list(x.columns)]
-	dfs_metrics += results_di
-
-df_metrics = dfs_metrics[0].join(dfs_metrics[1:], how="outer")
-df_metrics = df_metrics.loc[[i for i in df_metrics.index if (" time (sec)" not in i)]]
-
-cg = sns.clustermap(df_metrics.T.corr(method="spearman"), figsize=(5,5), cbar_kws=None, cmap="coolwarm", vmin=-1, vmax=1, cbar_pos=(1, .2, .03, .4))
-cg.ax_col_dendrogram.set_visible(False)
-plt.show()
-plt.close()
-
-r2_mat = np.eye(df_metrics.shape[0])
-for im1, m1 in enumerate(df_metrics.index):
-	for im2, m2 in enumerate(df_metrics.index[(im1+1):]):
-		r2_mat[im1,im1+1+im2] = r2_score(df_metrics.loc[m1].values, df_metrics.loc[m2].values)
-
-r2_mat += r2_mat.T
-np.diag(r2_mat, 1)
-df_r2 = pd.DataFrame(r2_mat, index=df_metrics.index, columns=df_metrics.index)
-cg = sns.clustermap(df_r2, figsize=(5,5), cbar_kws=None, cmap="coolwarm", vmin=-1, vmax=1, cbar_pos=(1, .2, .03, .4))
-cg.ax_col_dendrogram.set_visible(False)
-plt.show()
-plt.close()
-
 ################################
 ## Comparing metrics          ##
 ################################
+
+if ("metric" in run):
+	dfs_metrics = []
+	for dataset_name in dataset_df.index:
+		fnames = glob("results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = [pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)]
+		for ix, x in enumerate(results_di):
+			results_di[ix].columns = [col+"_"+dataset_name for col in list(x.columns)]
+		dfs_metrics += results_di
+
+	df_metrics = dfs_metrics[0].join(dfs_metrics[1:], how="outer")
+	df_metrics = df_metrics.loc[[i for i in df_metrics.index if (" time (sec)" not in i)]]
+	df_metrics = df_metrics.loc[["ACC", "global AUC", "AUC", "Lin's AUC", "global NDCG"]]
+	df_metrics.index = [{
+		"ACC": "Accuracy", 
+		"global AUC": "AUC",
+		"AUC": "AUC/disease",
+		"HR@2": "Recall@2",
+		"HR@10": "Recall@10",
+		"HR@5": "Recall@5",
+		"Fscore": "F1/disease",
+		"NDCGk": "NDCG/disease",
+		"Lin's AUC": "NS AUC",
+		"global NDCG": "NDCG"
+	}.get(x, x) for x in df_metrics.index]
+
+	## TODO redo!!!
+	corrmat = df_metrics.T.corr(method="spearman").values
+	#corrmat = np.triu(corrmat, k=-1)
+	corrmat = pd.DataFrame(corrmat, index=df_metrics.index, columns=df_metrics.index)
+	r2mat = np.zeros(corrmat.shape).astype(int).astype(str)
+	r2mat[r2mat=='0'] = ""
+	for im1, m1 in enumerate(df_metrics.index):
+		r2mat[im1,im1] = "1.0"
+		for im2, m2 in enumerate(df_metrics.index[(im1+1):]):
+			r2mat[im1+1+im2,im1] = r"$R^2$="+str(np.round(r2_score(df_metrics.loc[m1].values, df_metrics.loc[m2].values),1))
+			r2mat[im1,im1+1+im2] = r"$\rho$="+str(np.round(corrmat.values[im1,im1+1+im2], 1))
+
+	cg = sns.clustermap(corrmat, fmt="s", figsize=(8,8), annot=r2mat, cbar_kws=None, cmap="coolwarm", vmin=-1, vmax=1)
+	#cg = sns.PairGrid(df_metrics, diag_sharey=False, corner=True, height=1., aspect=1)
+	#cg.map_upper(sns.kdeplot)#clustermap)
+	#cg.map_lower(sns.regplot)
+	#cg.map_diag(sns.histplot)
+	plt.setp(cg.ax_heatmap.xaxis.get_majorticklabels(), rotation=45)
+	cg.ax_col_dendrogram.set_visible(False)
+	cg.fig.suptitle("Spearman correlation heatmap")
+	plt.show()
+	plt.close()
+
+################################
+## Use features in datasets?  ##
+################################
+
 
 
 exit()
