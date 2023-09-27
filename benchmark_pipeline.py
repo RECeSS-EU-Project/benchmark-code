@@ -149,6 +149,11 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	if (dataset_name=="Synthetic"):
 		data_args = stanscofi.datasets.generate_dummy_dataset(npositive, nnegative, nfeatures, mean, std, random_state=dataset_seed)
 		data_args.setdefault("name", "Synthetic")
+	elif (dataset_name=="Synthetic-wo-features"):
+		data_args = stanscofi.datasets.generate_dummy_dataset(npositive, nnegative, nfeatures, mean, std, random_state=dataset_seed)
+		data_args["items"] = pd.DataFrame(np.eye(data_args["items"].shape[1]), index=data_args["items"].columns, columns=data_args["items"].columns)
+		data_args["users"] = pd.DataFrame(np.eye(data_args["users"].shape[1]), index=data_args["users"].columns, columns=data_args["users"].columns)
+		data_args.setdefault("name", "Synthetic-wo-features")
 	#elif (dataset_name=="CaseControl"):
 	#	data_args, _ = prior_estimation.generate_CaseControl_dataset(N=npositive+nnegative,nfeatures=nfeatures,pi=pi,sparsity=sparsity,imbalance=imbalance,mean=mean,std=std,exact=True,random_state=dataset_seed)
 	#	data_args.setdefault("name", "CaseControl")
