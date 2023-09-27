@@ -32,7 +32,7 @@ models = [ ## 18
 	"LogisticMF", "PSGCN", "DDA_SKF", "HAN", "ALSWR", "LibMF", "SimpleBinaryClassifier"
 ]
 datasets = ["Synthetic", "DNdataset", "PREDICT_Gottlieb", #"CaseControl", "Censoring", 
-"TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL"] ## 9
+"TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL", "Synthetic-wo-features"] ## 9
 splitting_methods = ["weakly_correlated", "random_simple"]
 
 def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, random_seed=1234, metric="AUC", K=5, ptest=0.2, verbose=False, intermediary_results_folder="./"):
@@ -151,8 +151,9 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 		data_args.setdefault("name", "Synthetic")
 	elif (dataset_name=="Synthetic-wo-features"):
 		data_args = stanscofi.datasets.generate_dummy_dataset(npositive, nnegative, nfeatures, mean, std, random_state=dataset_seed)
-		data_args["items"] = pd.DataFrame(np.eye(data_args["items"].shape[1]), index=data_args["items"].columns, columns=data_args["items"].columns)
-		data_args["users"] = pd.DataFrame(np.eye(data_args["users"].shape[1]), index=data_args["users"].columns, columns=data_args["users"].columns)
+		nitems, nusers = data_args["items"].shape[1], data_args["users"].shape[1]
+		data_args["items"] = np.eye(nitems)
+		data_args["users"] = np.eye(nusers)
 		data_args.setdefault("name", "Synthetic-wo-features")
 	#elif (dataset_name=="CaseControl"):
 	#	data_args, _ = prior_estimation.generate_CaseControl_dataset(N=npositive+nnegative,nfeatures=nfeatures,pi=pi,sparsity=sparsity,imbalance=imbalance,mean=mean,std=std,exact=True,random_state=dataset_seed)
