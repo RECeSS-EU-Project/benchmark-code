@@ -7,10 +7,9 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
-from scipy.stats import kruskal #mannwhitneyu, alexandergovern
+from scipy.stats import kruskal #, mannwhitneyu, alexandergovern
 
-run = ["challenge"]
-#run = ["boxplots", "metric", "use_features", "challenge"]
+run = ["boxplots", "metric", "use_features", "use_features_synthetic", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
 
 ###############
 ## Boxplots  ##
@@ -43,16 +42,21 @@ for dataset_name in list(set([x.split("_")[1] for x in glob(root_folder+"results
 
 ## Get metrics (random simple split)
 dataset_df = pd.DataFrame(
-	[["textM", "textM", "Biol", "Biol", "Biol", "Synthetic", "Biol"]]
-, columns=["Gottlieb","Cdataset","TRANSCRIPT","PREDICTpublic","LRSSL","Synthetic","PREDICTGottlieb"]
+	[["textM", "textM", "Biol", "Biol", "Biol", "Synthetic", "Biol", "Synthetic"]]
+, columns=["Gottlieb","Cdataset","TRANSCRIPT","PREDICTpublic","LRSSL","Synthetic","PREDICTGottlieb","Synthetic-wo-features"]
 , index=["type"]).T
+rename_datasets = {
+	"Gottlieb": "Fdataset",
+	"PREDICTpublic": "PREDICT",
+	"PREDICTGottlieb": "Gottlieb",
+}
 algorithm_df = pd.DataFrame(
 	[["No","No","Yes","No","No","Yes","No"],
 	["MF","NN","NN","MF","MF","NN","MF"]]
 , columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF"]
 , index=["features", "type"]).T
-
 metric_of_choice = "Lin's AUC"
+topN=2
 
 ################################
 ## Comparing metrics          ##
@@ -137,16 +141,177 @@ if ("use_features" in run):
 	for dataset_name in dfs_metrics:
 		with_features, wo_features = [dfs_metrics[dataset_name][f].values.ravel() for f in ["Yes","No"]]
 		res = kruskal(with_features, wo_features)
-		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "p-value": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2)})
-	print("\n* Kruskal-Wallis H-test\n\tH_0: median(score)_{with features}=median(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.mean(with_features)-np.mean(wo_features)})
+	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{with features}=mean(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
 	results = pd.DataFrame(results)
-	print(results[list(sorted(results.columns))])
+	results.columns = [rename_datasets.get(x,x) for x in results.columns]
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(wf)-mean(wof)"]])
+
+if ("use_features_synthetic" in run):
+	dfs_metrics = {}
+	for dataset_name in dataset_df.index:
+		if ("Synthetic" not in dataset_name):
+			continue
+		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics.setdefault(dataset_name, data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]=="Yes"))]])
+		#dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f) and (algorithm_df.loc[m]["type"]=="NN"))]] for f in algorithm_df["features"].unique()})
+
+	alpha, alpha2 = 0.10, 0.01
+	results = {}
+	with_features, wo_features = [dfs_metrics["Synthetic"+d].values.ravel() for d in ["","-wo-features"]]
+	res = kruskal(with_features, wo_features)
+	results.setdefault("Synthetic w/wo features", {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.median(with_features)-np.median(wo_features)})
+	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{with features}=mean(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
+	results = pd.DataFrame(results)
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(wf)-mean(wof)"]])
 
 ################################
 ## Most challenging dataset?  ##
 ################################
 
 if ("challenge" in run):
+	dfs_metrics = {}
+	for dataset_name in dataset_df.index:
+		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics.setdefault(dataset_name, data_df.mean(axis=0).max())
+
+	print(pd.DataFrame({"Rank":dfs_metrics}).sort_values(by="Rank",ascending=False).T)
+
+####################################
+## Best algorithm (approx error)  ##
+####################################
+
+## boxplots
+if ("approx_error" in run):
+	df_metrics = {}
+	fontsize=30
+	for dataset_name in dataset_df.index:
+		if ("Synthetic" in dataset_name):
+			continue
+		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+		df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
+
+	fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,2.5))
+	order = ["Cdataset","Gottlieb","PREDICTGottlieb","LRSSL","PREDICTpublic","TRANSCRIPT"]
+	for i, [ax, dataset_name] in enumerate(zip(axes,order)):
+		sns.boxplot(data=df_metrics[dataset_name], ax=ax)
+		ax.set_xticklabels(df_metrics[dataset_name].columns, rotation=45, fontsize=fontsize)
+		ax.set_ylim((0.45, 0.87))
+		if (i!=0):
+			ax.set_yticklabels([])
+		else:
+			ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
+		ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
+	plt.savefig("boxplot_approx_error.png", bbox_inches="tight")
+
+####################################
+## Compare types (approx error)   ##
+####################################
+
+if ("compare_approx" in run):
+	dfs_metrics = {}
+	for dataset_name in dataset_df.index:
+		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["type"]==f))]] for f in algorithm_df["type"].unique()})
+
+	alpha, alpha2 = 0.10, 0.01
+	results = {}
+	for dataset_name in dfs_metrics:
+		with_features, wo_features = [dfs_metrics[dataset_name][f].values.ravel() for f in ["MF","NN"]]
+		res = kruskal(with_features, wo_features)
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features)})
+	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{MF}\n\tN=%d (MF)\tN=%d (NN)\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
+	results = pd.DataFrame(results)
+	results.columns = [rename_datasets.get(x,x) for x in results.columns]
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(MF)"]])
+
+####################################
+## Best algorithm (gen error)     ##
+####################################
+
+## boxplots
+if ("gen_error" in run):
+	df_metrics = {}
+	fontsize=30
+	for dataset_name in dataset_df.index:
+		if ("Synthetic" in dataset_name):
+			continue
+		fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+		df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
+
+	fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,2.5))
+	order = ["Cdataset","Gottlieb","PREDICTGottlieb","LRSSL","PREDICTpublic","TRANSCRIPT"]
+	for i, [ax, dataset_name] in enumerate(zip(axes,order)):
+		sns.boxplot(data=df_metrics[dataset_name], ax=ax)
+		ax.set_xticklabels(df_metrics[dataset_name].columns, rotation=45, fontsize=fontsize)
+		ax.set_ylim((0.45, 0.87))
+		if (i!=0):
+			ax.set_yticklabels([])
+		else:
+			ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
+		ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
+	plt.savefig("boxplot_gen_error.png", bbox_inches="tight")
+
+####################################
+## Compare types (gen error)      ##
+####################################
+
+if ("compare_gen" in run):
+	dfs_metrics = {}
+	for dataset_name in dataset_df.index:
+		fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["type"]==f))]] for f in algorithm_df["type"].unique()})
+
+	alpha, alpha2 = 0.10, 0.01
+	results = {}
+	for dataset_name in dfs_metrics:
+		if (dataset_name == "Synthetic-wo-features"):
+			continue
+		with_features, wo_features = [dfs_metrics[dataset_name][f].values.ravel() for f in ["MF","NN"]]
+		res = kruskal(with_features, wo_features)
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features)})
+	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{MF}\n\tN=%d (MF)\tN=%d (NN)\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
+	results = pd.DataFrame(results)
+	results.columns = [rename_datasets.get(x,x) for x in results.columns]
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(MF)"]])
+
+####################################
+## List all results               ##
+####################################
+
+if ("list-all-results-random-simple" in run):
 	dfs_metrics = {}
 	for dataset_name in dataset_df.index:
 		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
