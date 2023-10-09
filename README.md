@@ -21,7 +21,8 @@ python3 -m main --models "PMF" --datasets "Synthetic" \
 
 ```bash
 SAVE_FOLDER="../benchmark-results/" ## folder where files are saved
-ALGOS="ALSWR,BNNR,DDA-SKF,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF" ## algorithms to test
+## algorithms to test
+ALGOS="ALSWR,BNNR,DDA-SKF,FastaiCollabWrapper,HAN,LibMF,LogisticMF,NIMCGCN,PMF" 
 DATAS=("Cdataset" "Gottlieb" "LRSSL" "PREDICT" "PREDICT_Gottlieb" "Synthetic" "TRANSCRIPT")
 
 ## "Gottlieb" -> "Fdataset"
@@ -37,6 +38,7 @@ do
     for DATA in "${DATAS[@]}"
     do
         echo $SPLIT"----"$DATA;
-        python3 -m main --models "$ALGOS" --datasets "$DATA" --njobs "$NJOBS" --N "$N" --K "$K" --splitting "$SPLIT" --save_folder "$SAVE_FOLDER/results_"$DATA"/";
+        python3 -m main --models "$ALGOS" --datasets "$DATA" --njobs "$NJOBS" --N "$N" --K "$K" \
+        	--splitting "$SPLIT" --save_folder "$SAVE_FOLDER/results_"$DATA"/";
     done
 done
