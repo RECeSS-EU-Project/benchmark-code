@@ -7,7 +7,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
-from scipy.stats import kruskal #, mannwhitneyu, alexandergovern
+from scipy.stats import kruskal 
 
 run = ["boxplots", "metric", "use_features", "use_features_synthetic", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
 
@@ -134,6 +134,7 @@ if ("use_features" in run):
 		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
 		data_df = pd.DataFrame(data_df)
 		dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f))]] for f in algorithm_df["features"].unique()})
+		## if you want to restrict the analysis to NN algorithms
 		#dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f) and (algorithm_df.loc[m]["type"]=="NN"))]] for f in algorithm_df["features"].unique()})
 
 	alpha, alpha2 = 0.10, 0.01
@@ -159,6 +160,7 @@ if ("use_features_synthetic" in run):
 		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
 		data_df = pd.DataFrame(data_df)
 		dfs_metrics.setdefault(dataset_name, data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]=="Yes"))]])
+		## if you want to restrict the analysis to NN algorithms
 		#dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f) and (algorithm_df.loc[m]["type"]=="NN"))]] for f in algorithm_df["features"].unique()})
 
 	alpha, alpha2 = 0.10, 0.01

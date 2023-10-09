@@ -1,9 +1,5 @@
 #coding:utf-8
 
-## TIMEOUT: https://stackoverflow.com/questions/492519/timeout-on-a-function-call
-## MEMORYERROR: https://stackoverflow.com/questions/9850995/tracking-maximum-memory-usage-by-a-python-function
-## EXCEPTIONHANDLING: TODO
-
 import benchscofi
 from benchscofi.utils import rowwise_metrics, prior_estimation
 import stanscofi
@@ -26,13 +22,13 @@ import matplotlib.pyplot as plt
 import json
 
 datasets_folder="datasets/"
-models = [ ## 18
+models = [ 
 	"Constant", "PMF", "PulearnWrapper", "FastaiCollabWrapper", "NIMCGCN", "FFMWrapper", 
 	"VariationalWrapper", "DRRS", "SCPMF", "BNNR", "LRSSL", "MBiRW", "LibMFWrapper", 
 	"LogisticMF", "PSGCN", "DDA_SKF", "HAN", "ALSWR", "LibMF", "SimpleBinaryClassifier"
 ]
-datasets = ["Synthetic", "DNdataset", "PREDICT_Gottlieb", #"CaseControl", "Censoring", 
-"TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL", "Synthetic-wo-features"] ## 9
+datasets = ["Synthetic", "DNdataset", "PREDICT_Gottlieb",  
+	"TRANSCRIPT", "Gottlieb", "Cdataset", "PREDICT", "LRSSL", "Synthetic-wo-features"] 
 splitting_methods = ["weakly_correlated", "random_simple"]
 
 def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, random_seed=1234, metric="AUC", K=5, ptest=0.2, verbose=False, intermediary_results_folder="./"):
@@ -64,7 +60,6 @@ def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, r
 	if (verbose):
 		print("it=%d\tTraining Time %f\tBest Test %s=%f" % (inn+1, runtime, metric, np.max(di_results["test_metric"])))
 	## Return best model based on highest test metric
-	#print(di_results["test_metric"])
 	best_model = di_results["models"][np.argmax(di_results["test_metric"])]
         ##--------------------------------------------------------------##
         ##           III. VALIDATION model ON val dataset               ##
@@ -81,6 +76,7 @@ def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, r
 	## Compute metrics
 	### 1. row-wise AUC (using scikit-learn) and row-wise NDCG@#items
 	metrics, plot_args = stanscofi.validation.compute_metrics(scores, predictions, dataset_val, metrics=["AUC", "NDCGk", "Fscore"], k=dataset_val.nitems, beta=1, verbose=False)
+	## if you want the validation plots
 	#if (verbose):
 	#	stanscofi.validation.plot_metrics(**plot_args, figsize=(10,10), model_name=best_model.name+" "+dataset.name)
 	di_metrics = metrics.iloc[:-1,:].to_dict()["Average"]
@@ -88,7 +84,6 @@ def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, r
 	di_metrics.setdefault("prediction time (sec)", p_runtime)
 	### 2. row-wise disagreeing AUC
 	lin_aucs = rowwise_metrics.calc_auc(scores, dataset_val, transpose=False, verbose=False)
-	#print(lin_aucs)
 	lin_auc = np.mean(lin_aucs) if (np.max(lin_aucs)>0) else 0.5
 	di_metrics.setdefault("Lin's AUC", lin_auc)
 	### 3. global AUC and global NDCG@#pairs and Hit Ratio @2, @5, @10
@@ -117,7 +112,6 @@ def aux_run_pipeline(inn, model_name, params, data_args, red_folds, splitting, r
 	di_metrics.setdefault("ACC", np.sum(acc)/len(acc))
 	gc.collect()
 	metrics = pd.DataFrame({("%d_%s" % (inn+1,model_name)): di_metrics})
-	#print(metrics)
 	metrics.to_csv(intermediary_results_fname)
 	return metrics
 
@@ -135,9 +129,7 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	random.seed(dataset_seed)
 	results_fname = "_%s_%s_%s_%s_%f_%d_%f.csv" % (model_name, dataset_name, splitting, metric, batch_ratio, K, ptest)
 	seeds = np.random.choice(range(int(1e8)), size=N)
-	#print(seeds)
 	if (os.path.exists(results_folder+("results_N=%d" % N)+results_fname) and os.path.exists(results_folder+("seeds_N=%d" % N)+results_fname)):
-		#print(pd.read_csv(("seeds_N=%d" % N)+results_fname, index_col=0))
 		if (verbose):
 			print("File %s exists; returning it" % (results_folder+("results_N=%d" % N)+results_fname))
 		return pd.read_csv(results_folder+("results_N=%d" % N)+results_fname, index_col=0)
@@ -155,12 +147,6 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 		data_args["items"] = np.eye(nitems)
 		data_args["users"] = np.eye(nusers)
 		data_args.setdefault("name", "Synthetic-wo-features")
-	#elif (dataset_name=="CaseControl"):
-	#	data_args, _ = prior_estimation.generate_CaseControl_dataset(N=npositive+nnegative,nfeatures=nfeatures,pi=pi,sparsity=sparsity,imbalance=imbalance,mean=mean,std=std,exact=True,random_state=dataset_seed)
-	#	data_args.setdefault("name", "CaseControl")
-	#elif (dataset_name=="Censoring"):
-	#	data_args, _ = prior_estimation.generate_Censoring_dataset(pi=pi,c=c,N=npositive+nnegative,nfeatures=nfeatures,mean=mean,std=std,exact=True,random_state=dataset_seed)
-	#	data_args.setdefault("name", "Censoring")
 	else:
 		Popen(("mkdir -p "+datasets_folder+"/").split(" "))
 		data_args = stanscofi.utils.load_dataset(dataset_name, datasets_folder)
@@ -191,7 +177,6 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	res_df = pd.concat(tuple(results), axis=1)
 	res_df.to_csv((results_folder+("/results_N=%d" % N))+results_fname)
 	pd.DataFrame([seeds], index=["seed"], columns=range(N)).to_csv((results_folder+("/seeds_N=%d" % N))+results_fname)
-	#Popen(("rm -f intermediary_seed=*_"+results_fname).split(" "), shell=True)
 	call((("rm -f %s/intermediary_seed=*_" % results_folder)+results_fname), shell=True)
 	return res_df
 
@@ -252,5 +237,4 @@ if __name__=="__main__":
 	plot_boxplots({params_all["model_name"]: results}, params_all["splitting"], params_all["dataset_name"], metrics=None,  results_folder=params_all["results_folder"])
 	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, params_all["splitting"], params_all["dataset_name"], metrics=["AUC"], results_folder=params_all["results_folder"])
 	plot_boxplots({params_all["model_name"]: results, params_all["model_name"]+"_2": results}, params_all["splitting"], params_all["dataset_name"], metrics=["AUC","Lin's AUC"], results_folder=params_all["results_folder"])
-	#Popen(("rm -rf %s" % params_all["results_folder"]).split(" "), shell=True)
 	call("rm -rf %s" % params_all["results_folder"], shell=True)
