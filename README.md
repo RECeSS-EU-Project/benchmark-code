@@ -42,3 +42,12 @@ do
         	--splitting "$SPLIT" --save_folder "$SAVE_FOLDER/results_"$DATA"/";
     done
 done
+```
+
+## Reproduce analyses
+
+After the benchmark, run
+
+```bash
+python3 -m analyses
+```
