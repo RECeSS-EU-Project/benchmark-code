@@ -180,33 +180,6 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
 	call((("rm -f %s/intermediary_seed=*_" % results_folder)+results_fname), shell=True)
 	return res_df
 
-def plot_boxplots(results_di, splitting, dataset_name, metrics=None, results_folder="./"):
-	if (metrics is None or len(results_di)==1):
-		for model_name in results_di:
-			ids = [i for i in results_di[model_name].index if ((" time (sec)" not in i) and ("HR@" not in i) and (i not in ["ACC", "Fscore"]))]
-			results = results_di[model_name].loc[ids]
-			sns.boxplot(data=results.T)
-			plt.xlabel("Metrics (%s)" % model_name)
-			plt.ylabel("Score")
-			plt.xticks(rotation=45)
-			plt.savefig("%s/boxplot_%s_%s_%s.png" % (results_folder,model_name,splitting,dataset_name), bbox_inches="tight")
-			plt.close()
-	else:
-		results_lst = []
-		for metric in metrics:
-			results = pd.concat(tuple([pd.DataFrame(results_di[i].loc[metric].values, columns=["Value"], index=["%s (%d)" % (i,j) for j in range(results_di[i].shape[1])]) for i in results_di]), axis=0)
-			results["Model"] = [ii for i in results_di for ii in [i]*results_di[i].shape[1]]
-			results["Metric"] = [metric]*results.shape[0]
-			results_lst.append(results.T)
-		results = pd.concat(tuple(results_lst), axis=1).T
-		results["Value"] = results["Value"].astype(float)
-		sns.boxplot(data=results, x="Value", y="Metric", hue="Model")
-		plt.xlabel("Score")
-		plt.ylabel("Metric")
-		plt.xticks(rotation=45)
-		plt.savefig("%s/boxplot_%s_%s_%s.png" % (results_folder,splitting,dataset_name,"-".join(metrics)), bbox_inches="tight")
-		plt.close()
-
 if __name__=="__main__":
 	from multiprocessing import cpu_count
 

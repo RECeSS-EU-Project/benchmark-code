@@ -1,13 +1,15 @@
 #coding:utf-8
 
 import pandas as pd
-from benchmark_pipeline import plot_boxplots
+#from benchmark_pipeline import plot_boxplots
+from analyses import plot_boxplots
 from glob import glob
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 from scipy.stats import kruskal 
+import matplotlib as mpl
 
 run = ["boxplots", "metric", "use_features", "use_features_synthetic", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
 
@@ -23,41 +25,47 @@ for dataset_name in list(set([x.split("_")[1] for x in glob(root_folder+"results
 	print("* %s " % dataset_name)
 	fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
 	results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames}
-	data_df = pd.DataFrame({model: results_di[model].loc[["AUC","global AUC","Lin's AUC"]+["NDCGk","global NDCG"]].mean(axis=1).to_dict() for model in results_di})
+	data_df = pd.DataFrame({model: results_di[model].loc[["global AUC","Lin's AUC"]+["NDCGk","global NDCG"]].mean(axis=1).to_dict() for model in results_di})
 	data_df = np.round(data_df, 3)
 	print(data_df)
 	data_df.to_csv("../images/results_%s.txt" % dataset_name, sep="&")
-	plot_boxplots(results_di, "random_simple", dataset_name, metrics=["AUC","global AUC","Lin's AUC"], results_folder="../images/")
+	plot_boxplots(results_di, "random_simple", dataset_name, metrics=["global AUC","Lin's AUC"], results_folder="../images/")
 	plot_boxplots(results_di, "random_simple", dataset_name, metrics=["NDCGk","global NDCG"], results_folder="../images/")
 	fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
 	if (len(fnames)>0):
 		print("* %s (weakly correlated)" % dataset_name)
 		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames}
-		data_df = pd.DataFrame({model: results_di[model].loc[["AUC","global AUC","Lin's AUC"]+["NDCGk","global NDCG"]].mean(axis=1).to_dict() for model in results_di})
+		data_df = pd.DataFrame({model: results_di[model].loc[["global AUC","Lin's AUC"]+["NDCGk","global NDCG"]].mean(axis=1).to_dict() for model in results_di})
 		data_df = np.round(data_df, 3)
 		print(data_df)
 		data_df.to_csv("../images/results_%s.txt" % dataset_name, sep="&")
-		plot_boxplots(results_di, "weakly_correlated", dataset_name, metrics=["AUC","global AUC","Lin's AUC"], results_folder="../images/")
+		plot_boxplots(results_di, "weakly_correlated", dataset_name, metrics=["global AUC","Lin's AUC"], results_folder="../images/")
 		plot_boxplots(results_di, "weakly_correlated", dataset_name, metrics=["NDCGk","global NDCG"], results_folder="../images/")
 
 ## Get metrics (random simple split)
 dataset_df = pd.DataFrame(
-	[["textM", "textM", "Biol", "Biol", "Biol", "Synthetic", "Biol", "Synthetic"]]
-, columns=["Gottlieb","Cdataset","TRANSCRIPT","PREDICT","LRSSL","Synthetic","PREDICTGottlieb","Synthetic-wo-features"]
+	[["textM", "textM", "textM", "Biol", "Biol", "Biol", "Biol", "Synthetic", "Biol", "Synthetic"]]
+, columns=["Gottlieb","Cdataset","DNdataset","TRANSCRIPT","PREDICT","PREDICTpublic","LRSSL","Synthetic","PREDICTGottlieb","Synthetic-wo-features"]
 , index=["type"]).T
 rename_datasets = {
 	"Gottlieb": "Fdataset",
-	"PREDICTpublic": "PREDICT",
+	"PREDICTpublic": "PREDICT(p)",
 	"PREDICTGottlieb": "Gottlieb",
 }
 algorithm_df = pd.DataFrame(
-	[["No","No","Yes","No","No","Yes","No","Yes","Yes","Yes"],
-	["MF","NN","NN","MF","MF","NN","MF", "GB", "GB", "GB"]]
-, columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DDA"]
+	[["No","No","Yes","No","No","Yes","No","Yes","Yes","Yes", "Yes", "Yes", "No"],
+	["MF","NN","NN","MF","MF","NN","MF", "GB", "GB", "GB", "GB", "GB", "GB"]]
+, columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DDA", "DRRS", "MBiRW", "SCPMF"]
 , index=["features", "type"]).T
+rename_algorithms = {
+	"ALSWR": "ALS-WR",
+	"FastaiCollabWrapper": "Fast.ai",
+	"DDA": "DDA-SKF",
+}
 metric_of_choice = "Lin's AUC"
-topN=2
-order = ["Cdataset","Gottlieb","PREDICTGottlieb","LRSSL","PREDICT","TRANSCRIPT"]
+topN=3
+order = ["Cdataset","DNdataset","Gottlieb","LRSSL","PREDICT","PREDICTpublic","PREDICTGottlieb","TRANSCRIPT","Synthetic"]
+pal = {a: mpl.colormaps["tab20"].colors[(i+2)%mpl.colormaps["tab20"].N] for i, a in enumerate(algorithm_df.index)}
 
 ################################
 ## Comparing metrics          ##
@@ -196,31 +204,32 @@ if ("challenge" in run):
 
 ## boxplots
 if ("approx_error" in run):
-	df_metrics = {}
-	fontsize=30
-	for dataset_name in dataset_df.index:
-		if ("Synthetic" in dataset_name):
-			continue
-		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
-		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
-		for x in results_di:
-			results_di[x].columns = range(results_di[x].shape[1]) # N
-		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
-		data_df = pd.DataFrame(data_df)
-		rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
-		df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
+	for mm in ["Lin's AUC", "global AUC"]: #[metric_of_choice]
+		df_metrics = {}
+		fontsize=30
+		for dataset_name in dataset_df.index:
+			if ("Synthetic" in dataset_name):
+				continue
+			fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+			results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+			for x in results_di:
+				results_di[x].columns = range(results_di[x].shape[1]) # N
+			data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in results_di})
+			data_df = pd.DataFrame(data_df)
+			rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+			df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
 
-	fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,10))
-	for i, [ax, dataset_name] in enumerate(zip(axes,order)):
-		sns.boxplot(data=df_metrics[dataset_name], ax=ax)
-		ax.set_xticklabels(df_metrics[dataset_name].columns, rotation=45, fontsize=fontsize)
-		ax.set_ylim((0.52, 0.94))
-		if (i!=0):
-			ax.set_yticklabels([])
-		else:
-			ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
-		ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
-	plt.savefig("boxplot_approx_error.png", bbox_inches="tight")
+		fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,10))
+		for i, [ax, dataset_name] in enumerate(zip(axes,order)):
+			sns.boxplot(data=df_metrics[dataset_name], ax=ax, palette=pal)
+			ax.set_xticklabels([rename_algorithms.get(a, a) for a in df_metrics[dataset_name].columns], rotation=90, fontsize=fontsize)
+			ax.set_ylim((0.52, 0.94) if (mm=="Lin's AUC") else (0.9, 1.0))
+			if (i!=0):
+				ax.set_yticklabels([])
+			else:
+				ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
+			ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
+		plt.savefig("boxplot_approx_error_%s.png" % mm, bbox_inches="tight")
 
 ####################################
 ## Compare types (approx error)   ##
@@ -258,29 +267,30 @@ if ("compare_approx" in run):
 if ("gen_error" in run):
 	df_metrics = {}
 	fontsize=30
-	for dataset_name in dataset_df.index:
-		if ("Synthetic" in dataset_name):
-			continue
-		fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
-		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
-		for x in results_di:
-			results_di[x].columns = range(results_di[x].shape[1]) # N
-		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
-		data_df = pd.DataFrame(data_df)
-		rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
-		df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
+	for mm in ["Lin's AUC", "global AUC"]: #[metric_of_choice]
+		for dataset_name in dataset_df.index:
+			if ("Synthetic" in dataset_name):
+				continue
+			fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
+			results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+			for x in results_di:
+				results_di[x].columns = range(results_di[x].shape[1]) # N
+			data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in results_di})
+			data_df = pd.DataFrame(data_df)
+			rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+			df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
 
-	fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,10))
-	for i, [ax, dataset_name] in enumerate(zip(axes,order)):
-		sns.boxplot(data=df_metrics[dataset_name], ax=ax)
-		ax.set_xticklabels(df_metrics[dataset_name].columns, rotation=45, fontsize=fontsize)
-		ax.set_ylim((0.48, 0.82))
-		if (i!=0):
-			ax.set_yticklabels([])
-		else:
-			ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
-		ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
-	plt.savefig("boxplot_gen_error.png", bbox_inches="tight")
+		fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,10))
+		for i, [ax, dataset_name] in enumerate(zip(axes,order)):
+			sns.boxplot(data=df_metrics[dataset_name], ax=ax, palette=pal)
+			ax.set_xticklabels([rename_algorithms.get(a, a) for a in df_metrics[dataset_name].columns], rotation=90, fontsize=fontsize)
+			ax.set_ylim((0.48, 0.82) if (mm=="Lin's AUC") else (0.5, 0.8))
+			if (i!=0):
+				ax.set_yticklabels([])
+			else:
+				ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
+			ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
+		plt.savefig("boxplot_gen_error_%s.png" % mm, bbox_inches="tight")
 
 ####################################
 ## Compare types (gen error)      ##
