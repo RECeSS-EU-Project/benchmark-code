@@ -2,7 +2,8 @@
 
 ## FINETUNING PARAMETERS: TODO
 
-from benchmark_pipeline import run_pipeline, plot_boxplots
+from benchmark_pipeline import run_pipeline
+from analyses import plot_boxplots
 import json
 import argparse
 from multiprocessing import cpu_count

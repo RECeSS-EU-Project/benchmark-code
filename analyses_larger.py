@@ -11,7 +11,8 @@ from sklearn.metrics import r2_score
 from scipy.stats import kruskal 
 import matplotlib as mpl
 
-run = ["boxplots", "metric", "use_features", "use_features_synthetic", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
+run = ["boxplots", "metric", "use_features", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
+#run = ["boxplots", "metric", "use_features", "use_features_synthetic", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
 
 ###############
 ## Boxplots  ##
@@ -62,10 +63,15 @@ rename_algorithms = {
 	"FastaiCollabWrapper": "Fast.ai",
 	"DDA": "DDA-SKF",
 }
+
 metric_of_choice = "Lin's AUC"
 topN=3
 order = ["Cdataset","DNdataset","Gottlieb","LRSSL","PREDICT","PREDICTpublic","PREDICTGottlieb","TRANSCRIPT","Synthetic"]
 pal = {a: mpl.colormaps["tab20"].colors[(i+2)%mpl.colormaps["tab20"].N] for i, a in enumerate(algorithm_df.index)}
+dataset_df = dataset_df.loc[["Gottlieb","Cdataset","TRANSCRIPT","PREDICT","LRSSL","Synthetic","PREDICTGottlieb"]]
+algorithm_df = algorithm_df.loc[["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DRRS", "MBiRW"]]
+
+order = [x for x in order if (x in dataset_df.index)]
 
 ################################
 ## Comparing metrics          ##
@@ -223,7 +229,7 @@ if ("approx_error" in run):
 		for i, [ax, dataset_name] in enumerate(zip(axes,order)):
 			sns.boxplot(data=df_metrics[dataset_name], ax=ax, palette=pal)
 			ax.set_xticklabels([rename_algorithms.get(a, a) for a in df_metrics[dataset_name].columns], rotation=90, fontsize=fontsize)
-			ax.set_ylim((0.52, 0.94) if (mm=="Lin's AUC") else (0.9, 1.0))
+			ax.set_ylim((0.5, 0.94) if (mm=="Lin's AUC") else (0.9, 1.0))
 			if (i!=0):
 				ax.set_yticklabels([])
 			else:
@@ -265,9 +271,9 @@ if ("compare_approx" in run):
 
 ## boxplots
 if ("gen_error" in run):
-	df_metrics = {}
-	fontsize=30
 	for mm in ["Lin's AUC", "global AUC"]: #[metric_of_choice]
+		df_metrics = {}
+		fontsize=30
 		for dataset_name in dataset_df.index:
 			if ("Synthetic" in dataset_name):
 				continue
@@ -284,7 +290,7 @@ if ("gen_error" in run):
 		for i, [ax, dataset_name] in enumerate(zip(axes,order)):
 			sns.boxplot(data=df_metrics[dataset_name], ax=ax, palette=pal)
 			ax.set_xticklabels([rename_algorithms.get(a, a) for a in df_metrics[dataset_name].columns], rotation=90, fontsize=fontsize)
-			ax.set_ylim((0.48, 0.82) if (mm=="Lin's AUC") else (0.5, 0.8))
+			ax.set_ylim((0.5, 0.94) if (mm=="Lin's AUC") else (0.9, 1.0))
 			if (i!=0):
 				ax.set_yticklabels([])
 			else:

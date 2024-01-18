@@ -1,4 +1,4 @@
-# Benchmark code for "Benchmarking collaborative filtering approaches to drug repurposing"
+# Benchmark code for "Towards a large-scale benchmark of collaborative filtering in drug repurposing"
 
 ## Install
 
@@ -49,5 +49,5 @@ done
 After the benchmark, run
 
 ```bash
-python3 -m analyses
+python3 -m analyses_larger
 ```
