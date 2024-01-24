@@ -55,7 +55,7 @@ rename_datasets = {
 }
 algorithm_df = pd.DataFrame(
 	[["No","No","Yes","No","No","Yes","No","Yes","Yes","Yes", "Yes", "Yes", "No"],
-	["MF","NN","NN","MF","MF","NN","MF", "GB", "GB", "GB", "GB", "GB", "GB"]]
+	["MF","NN","NN","MF","MF","NN","MF", "GB", "GB", "GB", "MF", "GB", "GB"]]
 , columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DDA", "DRRS", "MBiRW", "SCPMF"]
 , index=["features", "type"]).T
 rename_algorithms = {
@@ -199,8 +199,8 @@ if ("challenge" in run):
 		for x in results_di:
 			results_di[x].columns = range(results_di[x].shape[1]) # N
 		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
-		data_df = pd.DataFrame(data_df)
-		dfs_metrics.setdefault(dataset_name, data_df.mean(axis=0).max())
+		data_df = pd.DataFrame(data_df) ## iterations x algos
+		dfs_metrics.setdefault(dataset_name, np.quantile(data_df.iloc[:,np.argsort(data_df.mean(axis=0).to_numpy())[-topN:]].to_numpy().flatten(), q=0.50))
 
 	print(pd.DataFrame({"Rank":dfs_metrics}).sort_values(by="Rank",ascending=False).T)
 
