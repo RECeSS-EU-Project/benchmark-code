@@ -68,8 +68,8 @@ metric_of_choice = "Lin's AUC"
 topN=3
 order = ["Cdataset","DNdataset","Gottlieb","LRSSL","PREDICT","PREDICTpublic","PREDICTGottlieb","TRANSCRIPT","Synthetic"]
 pal = {a: mpl.colormaps["tab20"].colors[(i+2)%mpl.colormaps["tab20"].N] for i, a in enumerate(algorithm_df.index)}
-dataset_df = dataset_df.loc[["Gottlieb","Cdataset","TRANSCRIPT","PREDICT","LRSSL","Synthetic","PREDICTGottlieb"]]
-algorithm_df = algorithm_df.loc[["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DRRS", "MBiRW"]]
+#dataset_df = dataset_df.loc[["Gottlieb","Cdataset","TRANSCRIPT","PREDICT","LRSSL","Synthetic","PREDICTGottlieb"]]
+#algorithm_df = algorithm_df.loc[["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DRRS", "MBiRW"]]
 
 order = [x for x in order if (x in dataset_df.index)]
 
