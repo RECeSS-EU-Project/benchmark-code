@@ -11,8 +11,7 @@ from sklearn.metrics import r2_score
 from scipy.stats import kruskal 
 import matplotlib as mpl
 
-run = ["boxplots", "metric", "use_features", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
-#run = ["boxplots", "metric", "use_features", "use_features_synthetic", "challenge","approx_error", "compare_approx", "gen_error", "compare_gen"]
+run = ["runtimes","compare_approx","compare_approx_gen"] #["boxplots", "metric", "use_features", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen"]
 
 ###############
 ## Boxplots  ##
@@ -55,7 +54,7 @@ rename_datasets = {
 }
 algorithm_df = pd.DataFrame(
 	[["No","No","Yes","No","No","Yes","No","Yes","Yes","Yes", "Yes", "Yes", "No"],
-	["MF","NN","NN","MF","MF","NN","MF", "GB", "GB", "GB", "MF", "GB", "GB"]]
+	["MF","NN","GB","MF","MF","NN","MF", "GB", "GB", "GB", "MF", "GB", "MF"]]
 , columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DDA", "DRRS", "MBiRW", "SCPMF"]
 , index=["features", "type"]).T
 rename_algorithms = {
@@ -89,17 +88,17 @@ if ("metric" in run):
 	df_metrics = dfs_metrics[0].join(dfs_metrics[1:], how="outer")
 	df_metrics = df_metrics.loc[[i for i in df_metrics.index if (" time (sec)" not in i)]]
 
-	df_metrics = df_metrics.loc[["ACC", "global AUC", "AUC", "Lin's AUC", "global NDCG"]]
+	df_metrics = df_metrics.loc[["ACC", "global AUC", "AUC", "Lin's AUC", "NDCGk"]]#"global NDCG"]]
 
 	df_metrics.index = [{
 		"ACC": "Accuracy", 
 		"global AUC": "AUC",
-		"AUC": "AUC/disease",
+		"AUC": "Avg. AUC", #"AUC/disease",
 		"HR@2": "Recall@2",
 		"HR@10": "Recall@10",
 		"HR@5": "Recall@5",
 		"Fscore": "F1/disease",
-		"NDCGk": "NDCG/disease",
+		"NDCGk": "NDCG @ Ns", #"NDCG/disease",
 		"Lin's AUC": "NS AUC",
 		"global NDCG": "NDCG"
 	}.get(x, x) for x in df_metrics.index]
@@ -115,7 +114,7 @@ if ("metric" in run):
 	sns.set(font_scale=fontsize)
 
 	cg = sns.PairGrid(df_metrics.T, diag_sharey=False, corner=False, height=1.5, aspect=1)
-	cg.fig.suptitle(r"Correlogram: $R^2$ plot & Spearman's $\rho$ (N=%d/metric)" % df_metrics.shape[1], fontsize=fontsize*10-2)
+	#cg.fig.suptitle(r"Correlogram: $R^2$ plot & Spearman's $\rho$ (N=%d/metric)" % df_metrics.shape[1], fontsize=fontsize*10-2)
 	cg.map_upper(sns.kdeplot, alpha=0)
 	cg.map_lower(sns.regplot, scatter_kws = {"color": "black", "alpha": 0.2, "s": 0.1}, line_kws = {"color": "red"})
 	cg.map_diag(sns.kdeplot, color="red")
@@ -147,6 +146,30 @@ if ("use_features" in run):
 		for x in results_di:
 			results_di[x].columns = range(results_di[x].shape[1]) # N
 		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f))]] for f in algorithm_df["features"].unique()})
+		## if you want to restrict the analysis to NN algorithms
+		#dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f) and (algorithm_df.loc[m]["type"]=="NN"))]] for f in algorithm_df["features"].unique()})
+
+	alpha, alpha2 = 0.01, 0.001
+	results = {}
+	for dataset_name in dfs_metrics:
+		with_features, wo_features = [dfs_metrics[dataset_name][f].values.ravel() for f in ["Yes","No"]]
+		res = kruskal(with_features, wo_features)
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.mean(with_features)-np.mean(wo_features)})
+	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{with features}=mean(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
+	results = pd.DataFrame(results)
+	results.columns = [rename_datasets.get(x,x) for x in results.columns]
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(wf)-mean(wof)"]])
+	
+if ("use_features-wo-matrix" in run):
+	dfs_metrics = {}
+	for dataset_name in dataset_df.index:
+		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di if (model in ["FastaiCollabWrapper", "HAN", "NIMCGCN", "LRSSL"])})
 		data_df = pd.DataFrame(data_df)
 		dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["features"]==f))]] for f in algorithm_df["features"].unique()})
 		## if you want to restrict the analysis to NN algorithms
@@ -203,6 +226,39 @@ if ("challenge" in run):
 		dfs_metrics.setdefault(dataset_name, np.quantile(data_df.iloc[:,np.argsort(data_df.mean(axis=0).to_numpy())[-topN:]].to_numpy().flatten(), q=0.50))
 
 	print(pd.DataFrame({"Rank":dfs_metrics}).sort_values(by="Rank",ascending=False).T)
+	
+####################################
+## Run times                      ##
+####################################
+
+## boxplots
+if ("runtimes" in run):
+	for mm in ["prediction time (sec)", "training time (sec)"]: 
+		df_metrics = {}
+		fontsize=30
+		for dataset_name in dataset_df.index:
+			if ("Synthetic" in dataset_name):
+				continue
+			fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+			results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+			for x in results_di:
+				results_di[x].columns = range(results_di[x].shape[1]) # N
+			data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in results_di})
+			data_df = pd.DataFrame(data_df)
+			rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+			df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
+
+		fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,10))
+		for i, [ax, dataset_name] in enumerate(zip(axes,order)):
+			sns.boxplot(data=df_metrics[dataset_name], ax=ax, palette=pal)
+			ax.set_xticklabels([rename_algorithms.get(a, a) for a in df_metrics[dataset_name].columns], rotation=90, fontsize=fontsize)
+			#ax.set_ylim((0.5, 0.94) if (mm=="Lin's AUC") else (0.9, 1.0))
+			if (i!=0):
+				ax.set_yticklabels([])
+			else:
+				ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
+			ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
+		plt.savefig("boxplot_runtimes_%s.png" % mm, bbox_inches="tight")
 
 ####################################
 ## Best algorithm (approx error)  ##
@@ -248,7 +304,7 @@ if ("compare_approx" in run):
 		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
 		for x in results_di:
 			results_di[x].columns = range(results_di[x].shape[1]) # N
-		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in ["FastaiCollabWrapper", "HAN", "NIMCGCN", "PMF", "LRSSL"] if (model in results_di)})#results_di})  
 		data_df = pd.DataFrame(data_df)
 		dfs_metrics.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["type"]==f))]] for f in algorithm_df["type"].unique()})
 
@@ -257,13 +313,21 @@ if ("compare_approx" in run):
 	for dataset_name in dfs_metrics:
 		if (dataset_name == "Synthetic-wo-features"):
 			continue
-		with_features, wo_features, wo_features2 = [dfs_metrics[dataset_name][f].values.ravel() for f in ["MF","NN","GB"]]
-		res = kruskal(with_features, wo_features, wo_features2)
-		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features), "mean(NN)-mean(GB)": np.mean(wo_features)-np.mean(wo_features2), "mean(MF)-mean(GB)": np.mean(with_features)-np.mean(wo_features2)})
-	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{MF}=mean(score)_{GB}\n\tN=%d (MF)\tN=%d (NN)\tN=%d (GB)\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), len(wo_features2), alpha, alpha2))
+		#with_features, wo_features, wo_features2 = [dfs_metrics[dataset_name][f].values.ravel() for f in ["MF","NN","GB"]]
+		wo_features, wo_features2 = [dfs_metrics[dataset_name][f].values.ravel() for f in ["NN","GB"]] ##
+		#res = kruskal(with_features, wo_features, wo_features2)
+		res = kruskal(wo_features, wo_features2) ##
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), 
+		#"mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features),
+		 "mean(NN)-mean(GB)": np.mean(wo_features)-np.mean(wo_features2), ##
+		 #"mean(MF)-mean(GB)": np.mean(with_features)-np.mean(wo_features2)
+		 })
+	#print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{MF}=mean(score)_{GB}\n\tN=%d (MF)\tN=%d (NN)\tN=%d (GB)\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), len(wo_features2), alpha, alpha2))
+	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{GB}\n\tN=%d (NN)\tN=%d (GB)\talpha=%.2f (%.2f)\n" % (len(wo_features), len(wo_features2), alpha, alpha2)) ##
 	results = pd.DataFrame(results)
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(MF)","mean(NN)-mean(GB)","mean(MF)-mean(GB)"]])
+	#print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(MF)","mean(NN)-mean(GB)","mean(MF)-mean(GB)"]]) 
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(GB)"]]) ##
 
 ####################################
 ## Best algorithm (gen error)     ##
@@ -342,3 +406,55 @@ if ("list-all-results-random-simple" in run):
 		dfs_metrics.setdefault(dataset_name, data_df)
 
 	print(dfs_metrics)
+	
+####################################
+## Test best generalization       ##
+####################################
+		
+if ("compare_approx_gen" in run):
+	dfs_metrics_random = {}
+	dataset_list = dataset_df.index #["Cdataset","PREDICTGottlieb","LRSSL", "Fdataset"] 
+	for dataset_name in dataset_list:
+		fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics_random.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["type"]==f))]] for f in algorithm_df["type"].unique()})
+	
+	dfs_metrics_wc = {}
+	for dataset_name in dataset_list:
+		fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
+		results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+		for x in results_di:
+			results_di[x].columns = range(results_di[x].shape[1]) # N
+		data_df = pd.DataFrame({model: results_di[model].loc[metric_of_choice].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		dfs_metrics_wc.setdefault(dataset_name, {f: data_df[[m for m in data_df.columns if ((algorithm_df.loc[m]["type"]==f))]] for f in algorithm_df["type"].unique()})
+
+	alpha, alpha2 = 0.01, 0.001
+	results = {}
+	scores_MF, scores_NN, scores_GB = [[],[]], [[],[]], [[],[]]
+	for dataset_name in dfs_metrics_random:
+		if (dataset_name == "Synthetic-wo-features"):
+			continue
+		scores_MF[0] += [dfs_metrics_random[dataset_name]["MF"].values.ravel()]
+		scores_MF[1] += [dfs_metrics_wc[dataset_name]["MF"].values.ravel()]
+		scores_NN[0] += [dfs_metrics_random[dataset_name]["NN"].values.ravel()]
+		scores_NN[1] += [dfs_metrics_wc[dataset_name]["NN"].values.ravel()]
+		scores_GB[0] += [dfs_metrics_random[dataset_name]["GB"].values.ravel()]
+		scores_GB[1] += [dfs_metrics_wc[dataset_name]["GB"].values.ravel()]
+	scores_MF[0] = np.concatenate(tuple(scores_MF[0]), axis=0)
+	scores_MF[1] = np.concatenate(tuple(scores_MF[1]), axis=0)
+	scores_NN[0] = np.concatenate(tuple(scores_NN[0]), axis=0)
+	scores_NN[1] = np.concatenate(tuple(scores_NN[1]), axis=0)
+	scores_GB[0] = np.concatenate(tuple(scores_GB[0]), axis=0)
+	scores_GB[1] = np.concatenate(tuple(scores_GB[1]), axis=0)
+	for scores, name in zip([scores_MF,scores_NN,scores_GB],["MF","NN","GB"]):
+		res = kruskal(scores[0], scores[1])
+		results.setdefault(name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(approx)-mean(gen)": np.mean(scores[0])-np.mean(scores[1])})
+		print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{%s,Rand}=mean(score)_{%s,WC}\n\tN=%d (rand)\tN=%d (wc)\talpha=%.2f (%.3f)\n" % (name, name, len(scores[0]), len(scores[1]), alpha, alpha2))
+	results = pd.DataFrame(results)
+	results.columns = [rename_datasets.get(x,x) for x in results.columns]
+	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(approx)-mean(gen)"]])
