@@ -11,7 +11,7 @@ from sklearn.metrics import r2_score
 from scipy.stats import kruskal 
 import matplotlib as mpl
 
-run = ["runtimes","compare_approx","compare_approx_gen"] #["boxplots", "metric", "use_features", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen"]
+run = ["boxplots", "metric", "use_features", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen", "runtimes"]
 
 ###############
 ## Boxplots  ##
@@ -232,6 +232,10 @@ if ("challenge" in run):
 ####################################
 
 ## boxplots
+allTop3 = ["ALSWR", "FastaiCollabWrapper", "HAN", "LogisticMF", "NIMCGCN", "PMF", "BNNR", "DRRS", "MBiRW", "SCPMF"]
+frequentTop3 = ["FastaiCollabWrapper", "HAN", "LogisticMF", "NIMCGCN", "BNNR", "DRRS", "MBiRW", "SCPMF"] ## appear more than once
+allTop2 = ["HAN", "LogisticMF", "BNNR", "DRRS", "MBiRW"] 
+frequentTop2 = ["HAN", "LogisticMF", "BNNR", "DRRS", "MBiRW"] ## appear more than once in Top2
 if ("runtimes" in run):
 	for mm in ["prediction time (sec)", "training time (sec)"]: 
 		df_metrics = {}
@@ -243,10 +247,10 @@ if ("runtimes" in run):
 			results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
 			for x in results_di:
 				results_di[x].columns = range(results_di[x].shape[1]) # N
-			data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in results_di})
+			data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in frequentTop3 if (model in results_di)})
 			data_df = pd.DataFrame(data_df)
 			rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
-			df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[:topN])])
+			df_metrics.setdefault(dataset_name, data_df[list(rank_data_df.index[list(range(-1,-min(topN+1,rank_data_df.shape[0]),-1)) if (mm=="training time (sec)") else list(range(min(topN+1,rank_data_df.shape[0])))])])
 
 		fig, axes = plt.subplots(nrows=1,ncols=len(df_metrics),figsize=(22,10))
 		for i, [ax, dataset_name] in enumerate(zip(axes,order)):
@@ -258,7 +262,7 @@ if ("runtimes" in run):
 			else:
 				ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)		
 			ax.set_title(rename_datasets.get(dataset_name, dataset_name), fontsize=fontsize)
-		plt.savefig("boxplot_runtimes_%s.png" % mm, bbox_inches="tight")
+		plt.savefig("boxplot_runtimes_%s.png" % mm.split(" ")[0], bbox_inches="tight")
 
 ####################################
 ## Best algorithm (approx error)  ##
