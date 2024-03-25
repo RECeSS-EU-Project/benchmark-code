@@ -11,7 +11,7 @@ from sklearn.metrics import r2_score
 from scipy.stats import kruskal 
 import matplotlib as mpl
 
-run = ["boxplots", "metric", "use_features", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen", "runtimes"]
+run = ["boxplots", "metric", "use_features", "use_features_synthetic", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen", "runtimes", "show_synthetic"]
 
 ###############
 ## Boxplots  ##
@@ -62,6 +62,18 @@ rename_algorithms = {
 	"FastaiCollabWrapper": "Fast.ai",
 	"DDA": "DDA-SKF",
 }
+rename_metrics = {
+		"ACC": "Accuracy", 
+		"global AUC": "AUC",
+		"AUC": "Avg. AUC", #"AUC/disease",
+		"HR@2": "Recall@2",
+		"HR@10": "Recall@10",
+		"HR@5": "Recall@5",
+		"Fscore": "F1/disease",
+		"NDCGk": "NDCG @ Ns", #"NDCG/disease",
+		"Lin's AUC": "NS AUC",
+		"global NDCG": "NDCG"
+	}
 
 metric_of_choice = "Lin's AUC"
 topN=3
@@ -90,18 +102,7 @@ if ("metric" in run):
 
 	df_metrics = df_metrics.loc[["ACC", "global AUC", "AUC", "Lin's AUC", "NDCGk"]]#"global NDCG"]]
 
-	df_metrics.index = [{
-		"ACC": "Accuracy", 
-		"global AUC": "AUC",
-		"AUC": "Avg. AUC", #"AUC/disease",
-		"HR@2": "Recall@2",
-		"HR@10": "Recall@10",
-		"HR@5": "Recall@5",
-		"Fscore": "F1/disease",
-		"NDCGk": "NDCG @ Ns", #"NDCG/disease",
-		"Lin's AUC": "NS AUC",
-		"global NDCG": "NDCG"
-	}.get(x, x) for x in df_metrics.index]
+	df_metrics.index = [rename_metrics.get(x, x) for x in df_metrics.index]
 
 	corrmat = df_metrics.T.corr(method="spearman").values
 	r2mat = np.eye(corrmat.shape[0])
@@ -226,6 +227,54 @@ if ("challenge" in run):
 		dfs_metrics.setdefault(dataset_name, np.quantile(data_df.iloc[:,np.argsort(data_df.mean(axis=0).to_numpy())[-topN:]].to_numpy().flatten(), q=0.50))
 
 	print(pd.DataFrame({"Rank":dfs_metrics}).sort_values(by="Rank",ascending=False).T)
+	
+####################################
+## Show results Synthetic         ##
+####################################
+
+topNN=10
+fontsize=20
+dataset_name = "Synthetic"
+if ("show_synthetic" in run):
+	dfs_metrics_random = {}
+	fnames = glob(root_folder+"results_%s/results_*/results_*.csv" % dataset_name)
+	results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+	for x in results_di:
+		results_di[x].columns = range(results_di[x].shape[1]) # N
+	for mm in ["Lin's AUC", "global AUC"]:
+		data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+		dfs_metrics_random.setdefault(mm, data_df[list(rank_data_df.index[:topNN])])
+	
+	dfs_metrics_wc = {}
+	fnames = glob(root_folder+"results_%s_weakly_correlated/results_*/results_*.csv" % dataset_name)
+	results_di = {fnn.split("/")[-2].split("_")[1]: pd.read_csv(fnn, index_col=0) for fnn in fnames if (fnn.split("/")[-2].split("_")[1] in algorithm_df.index)} ## all iterations
+	for x in results_di:
+		results_di[x].columns = range(results_di[x].shape[1]) # N
+	for mm in ["Lin's AUC", "global AUC"]:
+		data_df = pd.DataFrame({model: results_di[model].loc[mm].to_dict() for model in results_di})
+		data_df = pd.DataFrame(data_df)
+		rank_data_df = data_df.mean(axis=0).sort_values(ascending=False)
+		dfs_metrics_wc.setdefault(mm, data_df[list(rank_data_df.index[:topNN])])
+
+	for idf, df in enumerate([dfs_metrics_random,dfs_metrics_wc]):
+		print("random" if (idf==0) else "weakly correlated")
+		print({m: pd.concat((df[m].mean(axis=0).sort_values(ascending=False), df[m].std(axis=0).loc[df[m].mean(axis=0).sort_values(ascending=False).index]),axis=1) for m in df})		
+		
+	fig, axes = plt.subplots(nrows=2,ncols=2,figsize=(15,19))	
+	for im, mm in enumerate(["Lin's AUC", "global AUC"]):	
+		for idf, df_metrics in enumerate([dfs_metrics_random, dfs_metrics_wc]):
+			ax = axes[im,idf]
+			sns.boxplot(data=df_metrics[mm], ax=ax, palette=pal)
+			ax.set_xticklabels([rename_algorithms.get(a, a) for a in df_metrics[mm].columns], rotation=90 if (im) else 46, fontsize=fontsize)
+			ax.set_ylim((0.9,1.001)) #(0.4,0.95) if (im==0) else (0.7, 1.0)) #((0.4, 0.85) if (mm=="Lin's AUC") else (0.9, 1.0))
+			if (idf!=0):
+				ax.set_yticklabels([])
+			else:
+				ax.set_yticklabels(ax.get_yticklabels(),fontsize=fontsize)
+				ax.set_ylabel(rename_metrics.get(mm,mm), fontsize=fontsize)		
+	plt.savefig("boxplot_synthetic.png", bbox_inches="tight")
 	
 ####################################
 ## Run times                      ##
@@ -462,3 +511,4 @@ if ("compare_approx_gen" in run):
 	results = pd.DataFrame(results)
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
 	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(approx)-mean(gen)"]])
+	
