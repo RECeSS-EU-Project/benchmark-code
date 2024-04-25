@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 from scipy.stats import kruskal 
 import matplotlib as mpl
+from statsmodels.stats.multitest import multipletests
+p_adjust_bh = lambda p, a : multipletests(p, alpha=a, method='fdr_bh', maxiter=1, is_sorted=False, returnsorted=False)[1]
 
 run = ["boxplots", "metric", "use_features", "use_features_synthetic", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen", "runtimes", "show_synthetic"]
 
@@ -157,11 +159,15 @@ if ("use_features" in run):
 	for dataset_name in dfs_metrics:
 		with_features, wo_features = [dfs_metrics[dataset_name][f].values.ravel() for f in ["Yes","No"]]
 		res = kruskal(with_features, wo_features)
-		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.mean(with_features)-np.mean(wo_features)})
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "pval": res.pvalue, "mean(wf)-mean(wof)": np.mean(with_features)-np.mean(wo_features)})
 	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{with features}=mean(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
 	results = pd.DataFrame(results)
+	pvals = results.loc["pval"].values.flatten()
+	corr_pvals = p_adjust_bh(pvals, alpha)
+	results.loc["corr pval"] = corr_pvals
+	results.loc["sign."] = ["*"*int(p<alpha)+"**"*int(p<alpha2) for p in corr_pvals]
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(wf)-mean(wof)"]])
+	print(results[list(sorted(results.columns))].loc[["statistic","pval","corr pval","sign.","mean(wf)-mean(wof)"]])
 	
 if ("use_features-wo-matrix" in run):
 	dfs_metrics = {}
@@ -181,11 +187,15 @@ if ("use_features-wo-matrix" in run):
 	for dataset_name in dfs_metrics:
 		with_features, wo_features = [dfs_metrics[dataset_name][f].values.ravel() for f in ["Yes","No"]]
 		res = kruskal(with_features, wo_features)
-		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.mean(with_features)-np.mean(wo_features)})
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "pval": res.pvalue, "mean(wf)-mean(wof)": np.mean(with_features)-np.mean(wo_features)})
 	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{with features}=mean(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
 	results = pd.DataFrame(results)
+	pvals = results.loc["pval"].values.flatten()
+	corr_pvals = p_adjust_bh(pvals, alpha)
+	results.loc["corr pval"] = corr_pvals
+	results.loc["sign."] = ["*"*int(p<alpha)+"**"*int(p<alpha2) for p in corr_pvals]
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(wf)-mean(wof)"]])
+	print(results[list(sorted(results.columns))].loc[["statistic","pval","corr pval","sign.","mean(wf)-mean(wof)"]])
 
 if ("use_features_synthetic" in run):
 	dfs_metrics = {}
@@ -206,10 +216,11 @@ if ("use_features_synthetic" in run):
 	results = {}
 	with_features, wo_features = [dfs_metrics["Synthetic"+d].values.ravel() for d in ["","-wo-features"]]
 	res = kruskal(with_features, wo_features)
-	results.setdefault("Synthetic w/wo features", {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.median(with_features)-np.median(wo_features)})
+	results.setdefault("Synthetic w/wo features", {"statistic": np.round(res.statistic,2), "pval": res.pvalue, "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(wf)-mean(wof)": np.median(with_features)-np.median(wo_features)})
 	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{with features}=mean(score)_{w/o features}\n\tN=%d with features\tN=%d w/o features\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), alpha, alpha2))
 	results = pd.DataFrame(results)
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(wf)-mean(wof)"]])
+	results.columns = [rename_datasets.get(x,x) for x in results.columns]
+	print(results[list(sorted(results.columns))].loc[["statistic","pval","sign.","mean(wf)-mean(wof)"]])
 
 ################################
 ## Most challenging dataset?  ##
@@ -370,7 +381,9 @@ if ("compare_approx" in run):
 		wo_features, wo_features2 = [dfs_metrics[dataset_name][f].values.ravel() for f in ["NN","GB"]] ##
 		#res = kruskal(with_features, wo_features, wo_features2)
 		res = kruskal(wo_features, wo_features2) ##
-		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), 
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), 
+		"pval": res.pvalue,
+		#"sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), 
 		#"mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features),
 		 "mean(NN)-mean(GB)": np.mean(wo_features)-np.mean(wo_features2), ##
 		 #"mean(MF)-mean(GB)": np.mean(with_features)-np.mean(wo_features2)
@@ -378,9 +391,13 @@ if ("compare_approx" in run):
 	#print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{MF}=mean(score)_{GB}\n\tN=%d (MF)\tN=%d (NN)\tN=%d (GB)\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), len(wo_features2), alpha, alpha2))
 	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{GB}\n\tN=%d (NN)\tN=%d (GB)\talpha=%.2f (%.2f)\n" % (len(wo_features), len(wo_features2), alpha, alpha2)) ##
 	results = pd.DataFrame(results)
+	pvals = results.loc["pval"].values.flatten()
+	corr_pvals = p_adjust_bh(pvals, alpha)
+	results.loc["corr pval"] = corr_pvals
+	results.loc["sign."] = ["*"*int(p<alpha)+"**"*int(p<alpha2) for p in corr_pvals]
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
-	#print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(MF)","mean(NN)-mean(GB)","mean(MF)-mean(GB)"]]) 
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(GB)"]]) ##
+	#print(results[list(sorted(results.columns))].loc[["statistic","pval","corr pval","sign.","mean(NN)-mean(MF)","mean(NN)-mean(GB)","mean(MF)-mean(GB)"]])
+	print(results[list(sorted(results.columns))].loc[["statistic","pval","corr pval","sign.","mean(NN)-mean(GB)"]])
 
 ####################################
 ## Best algorithm (gen error)     ##
@@ -437,11 +454,20 @@ if ("compare_gen" in run):
 			continue
 		with_features, wo_features, wo_features2 = [dfs_metrics[dataset_name][f].values.ravel() for f in ["MF","NN","GB"]]
 		res = kruskal(with_features, wo_features, wo_features2)
-		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features), "mean(NN)-mean(GB)": np.mean(wo_features)-np.mean(wo_features2), "mean(MF)-mean(GB)": np.mean(with_features)-np.mean(wo_features2)})
+		results.setdefault(dataset_name, {"statistic": np.round(res.statistic,2), 
+		"pval": res.pvalue,
+		#"sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), 
+		"mean(NN)-mean(MF)": np.mean(wo_features)-np.mean(with_features), 
+		"mean(NN)-mean(GB)": np.mean(wo_features)-np.mean(wo_features2), 
+		"mean(MF)-mean(GB)": np.mean(with_features)-np.mean(wo_features2)})
 	print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{NN}=mean(score)_{MF}=mean(score)_{GB}\n\tN=%d (MF)\tN=%d (NN)\tN=%d (GB)\talpha=%.2f (%.2f)\n" % (len(with_features), len(wo_features), len(wo_features2), alpha, alpha2))
 	results = pd.DataFrame(results)
+	pvals = results.loc["pval"].values.flatten()
+	corr_pvals = p_adjust_bh(pvals, alpha)
+	results.loc["corr pval"] = corr_pvals
+	results.loc["sign."] = ["*"*int(p<alpha)+"**"*int(p<alpha2) for p in corr_pvals]
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(NN)-mean(MF)","mean(NN)-mean(GB)","mean(MF)-mean(GB)"]])
+	print(results[list(sorted(results.columns))].loc[["statistic","pval","corr pval","sign.","mean(NN)-mean(MF)","mean(NN)-mean(GB)","mean(MF)-mean(GB)"]])
 
 ####################################
 ## List all results               ##
@@ -506,9 +532,13 @@ if ("compare_approx_gen" in run):
 	scores_GB[1] = np.concatenate(tuple(scores_GB[1]), axis=0)
 	for scores, name in zip([scores_MF,scores_NN,scores_GB],["MF","NN","GB"]):
 		res = kruskal(scores[0], scores[1])
-		results.setdefault(name, {"statistic": np.round(res.statistic,2), "sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), "mean(approx)-mean(gen)": np.mean(scores[0])-np.mean(scores[1])})
+		results.setdefault(name, {"statistic": np.round(res.statistic,2), "pval": res.pvalue, #"sign.": "*"*int(res.pvalue<alpha)+"**"*int(res.pvalue<alpha2), 
+		"mean(approx)-mean(gen)": np.mean(scores[0])-np.mean(scores[1])})
 		print("\n* Kruskal-Wallis H-test\n\tH_0: mean(score)_{%s,Rand}=mean(score)_{%s,WC}\n\tN=%d (rand)\tN=%d (wc)\talpha=%.2f (%.3f)\n" % (name, name, len(scores[0]), len(scores[1]), alpha, alpha2))
 	results = pd.DataFrame(results)
+	pvals = results.loc["pval"].values.flatten()
+	corr_pvals = p_adjust_bh(pvals, alpha)
+	results.loc["corr pval"] = corr_pvals
+	results.loc["sign."] = ["*"*int(p<alpha)+"**"*int(p<alpha2) for p in corr_pvals]
 	results.columns = [rename_datasets.get(x,x) for x in results.columns]
-	print(results[list(sorted(results.columns))].loc[["statistic","sign.","mean(approx)-mean(gen)"]])
-	
+	print(results[list(sorted(results.columns))].loc[["statistic","pval","corr pval","sign.","mean(approx)-mean(gen)"]])

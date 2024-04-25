@@ -1,5 +1,6 @@
-benchscofi>=1.0.1
+﻿benchscofi>=1.0.1
 stanscofi>=2.0.0
+statsmodels
 seaborn
 numpy
 joblib
