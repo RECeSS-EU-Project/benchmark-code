@@ -1,8 +1,8 @@
-# Benchmark code for "Towards a large-scale benchmark of collaborative filtering in drug repurposing"
+# Benchmark code for "Comprehensive evaluation of collaborative filtering in drug repurposing"
 
 ## Install
 
-Please refer to the [README](https://github.com/recess-eu-project/benchscofi) to install cross-platform algorithms.
+Please refer to the [README](https://github.com/recess-eu-project/benchscofi) to install cross-platform algorithms in package **benchscofi**.
 
 ```bash
 conda create --name benchmark_code python=3.8 -y
@@ -49,5 +49,5 @@ done
 After the benchmark, run
 
 ```bash
-python3 -m analyses_larger
+python3 -m analyses
 ```

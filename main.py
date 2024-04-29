@@ -1,7 +1,5 @@
 #coding:utf-8
 
-## FINETUNING PARAMETERS: TODO
-
 from benchmark_pipeline import run_pipeline
 from analyses import plot_boxplots
 import json
@@ -9,7 +7,7 @@ import argparse
 from multiprocessing import cpu_count
 from subprocess import Popen
 
-parser = argparse.ArgumentParser(description='Large-scale benchmark of collaborative filtering applications to drug repurposing')
+parser = argparse.ArgumentParser(description='Comprehensive evaluation of collaborative filtering in drug repurposing')
 
 parser.add_argument('--models', type=str, help="List of models to test, separated by commas", default="PMF,FastaiCollabWrapper")
 parser.add_argument('--datasets', type=str, help="List of datasets to test, separated by commas", default="Gottlieb,Synthetic")
