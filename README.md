@@ -9,7 +9,7 @@
 
 The dependencies, along with package versions, are listed in the file named *requirements.txt*.
 
-## 2. Installation guide (estimated install time: <5min)
+## 2. Installation guide (estimated install time: ~30min)
 
 Please refer to the [README](https://github.com/recess-eu-project/benchscofi) to install cross-platform algorithms in package **benchscofi**. It is strongly advised to install the [Conda](https://docs.anaconda.com/free/miniconda/miniconda-install/) tool to create a virtual environment, and [Pip](https://pip.pypa.io/en/stable/installation/) for installing dependencies:
 

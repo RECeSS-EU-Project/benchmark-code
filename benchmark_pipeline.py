@@ -164,16 +164,19 @@ def run_pipeline(model_name=None, dataset_name=None, splitting=None, params=None
         ##################################################################
         ##            RUN BENCHMARK PIPELINE                            ##
 	##################################################################
+	#startid, modid, resid = 50, 3, 0
+	#seeds_ = [(iss, seed) for iss, seed in enumerate(seeds) if ((iss%modid==resid) and (iss>startid))]
+	seeds_ = enumerate(seeds)
 	if ((njobs==1) or (N==1)):
 		results = []
-		for iss, seed in enumerate(seeds):
+		for iss, seed in seeds_:
 			df_results = aux_run_pipeline(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder)
 			results.append(df_results)
 	else:
 		if (verbose):
 			print("%d jobs in parallel" % njobs)
 		with parallel_backend('loky', inner_max_num_threads=njobs):
-			results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in enumerate(seeds))
+			results = Parallel(n_jobs=njobs, backend='loky')(delayed(aux_run_pipeline)(iss, model_name, params, data_args, red_folds, splitting, random_seed=seed, metric=metric, K=K, ptest=ptest, verbose=verbose, intermediary_results_folder=results_folder) for iss, seed in seeds_)
 	res_df = pd.concat(tuple(results), axis=1)
 	res_df.to_csv((results_folder+("/results_N=%d" % N))+results_fname)
 	pd.DataFrame([seeds], index=["seed"], columns=range(N)).to_csv((results_folder+("/seeds_N=%d" % N))+results_fname)
