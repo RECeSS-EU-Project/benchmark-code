@@ -40,7 +40,8 @@ def plot_boxplots(results_di, splitting, dataset_name, metrics=None, results_fol
 		
 if __name__=="__main__":
 		
-	run = ["boxplots", "metric", "use_features", "use_features_synthetic", "use_features-wo-matrix", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen", "runtimes", "show_synthetic"]
+	run = ["boxplots", "metric", "use_features", "challenge", "approx_error", "compare_approx", "gen_error", "compare_gen", "compare_approx_gen", "runtimes", "show_synthetic"]
+	## "use_features_synthetic", "use_features-wo-matrix", 
 
 	###############
 	## Boxplots  ##
@@ -82,14 +83,14 @@ if __name__=="__main__":
 		"PREDICTGottlieb": "Gottlieb",
 	}
 	algorithm_df = pd.DataFrame(
-		[["No","No","Yes","No","No","Yes","No","Yes","Yes","Yes", "Yes", "Yes", "No"],
-		["MF","NN","GB","MF","MF","NN","MF", "GB", "GB", "GB", "MF", "GB", "MF"]]
-	, columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DDA", "DRRS", "MBiRW", "SCPMF"]
+		[["No","No","Yes","No","No","Yes","No","Yes","Yes","Yes", "No"],#"Yes", "Yes", "Yes", "No"],
+		["MF","NN","GB","MF","MF","NN","MF", "GB", "GB", "MF", "MF"]] #"GB", "MF", "GB", "MF"]]
+	, columns=["ALSWR", "FastaiCollabWrapper", "HAN", "LibMF", "LogisticMF", "NIMCGCN", "PMF", "LRSSL", "BNNR", "DRRS", "SCPMF"] #"DDA", "DRRS", "MBiRW", "SCPMF"]
 	, index=["features", "type"]).T
 	rename_algorithms = {
 		"ALSWR": "ALS-WR",
 		"FastaiCollabWrapper": "Fast.ai",
-		"DDA": "DDA-SKF",
+		#"DDA": "DDA-SKF",
 	}
 	rename_metrics = {
 			"ACC": "Accuracy", 
@@ -319,10 +320,10 @@ if __name__=="__main__":
 	####################################
 
 	## boxplots
-	allTop3 = ["ALSWR", "FastaiCollabWrapper", "HAN", "LogisticMF", "NIMCGCN", "PMF", "BNNR", "DRRS", "MBiRW", "SCPMF"]
-	frequentTop3 = ["FastaiCollabWrapper", "HAN", "LogisticMF", "NIMCGCN", "BNNR", "DRRS", "MBiRW", "SCPMF"] ## appear more than once
-	allTop2 = ["HAN", "LogisticMF", "BNNR", "DRRS", "MBiRW"] 
-	frequentTop2 = ["HAN", "LogisticMF", "BNNR", "DRRS", "MBiRW"] ## appear more than once in Top2
+	allTop3 = ["ALSWR", "FastaiCollabWrapper", "HAN", "LogisticMF", "NIMCGCN", "PMF", "BNNR", "DRRS", "SCPMF"] #"MBiRW", "SCPMF"]
+	frequentTop3 = ["FastaiCollabWrapper", "HAN", "LogisticMF", "NIMCGCN", "BNNR", "DRRS", "SCPMF"] ## appear more than once #"MBiRW", "SCPMF"] ## appear more than once
+	allTop2 = ["HAN", "LogisticMF", "BNNR", "DRRS"] #, "MBiRW"] 
+	frequentTop2 = ["HAN", "LogisticMF", "BNNR", "DRRS"] #, "MBiRW"] ## appear more than once in Top2
 	if ("runtimes" in run):
 		for mm in ["prediction time (sec)", "training time (sec)"]: 
 			df_metrics = {}
