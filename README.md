@@ -139,7 +139,7 @@ metrics = pd.DataFrame({("%d_%s" % (inn+1,model_name)): di_metrics})
 ## Folder where files are saved
 SAVE_FOLDER="../benchmark-results/" 
 ## Algorithms to test
-ALGOS="ALSWR,LibMF,LogisticMF,PMF,SCPMF,FastaiCollabWrapper,NIMCGCN,BNNR,DDA_SKF,DRRS,HAN,LRSSL,MBiRW" 
+ALGOS="ALSWR,LibMF,LogisticMF,PMF,SCPMF,FastaiCollabWrapper,NIMCGCN,BNNR,DRRS,HAN,LRSSL" 
 DATAS=("Cdataset" "Gottlieb" "LRSSL" "DNdataset" "PREDICT" "PREDICT_Gottlieb" "Synthetic" "TRANSCRIPT")
 
 ## Note:
